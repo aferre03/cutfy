@@ -1,0 +1,50 @@
+// Funciones compartidas por las distintas pantallas.
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function formatSegments(segments) {
+  return segments.map((s) => `${s.reps}×${s.weight}kg`).join(" + ");
+}
+
+/** Compara una serie nueva contra la misma serie de la sesion anterior.
+ * Se basa en el peso maximo usado (peso de trabajo) y, si es igual,
+ * en el total de repeticiones sumando todos los segmentos. */
+function compareToPrevious(newSegments, prevSegments) {
+  if (!prevSegments || prevSegments.length === 0) return null;
+
+  const sumReps = (segs) => segs.reduce((acc, s) => acc + s.reps, 0);
+  const topWeight = (segs) => Math.max(...segs.map((s) => s.weight));
+
+  const newTotalReps = sumReps(newSegments);
+  const prevTotalReps = sumReps(prevSegments);
+  const newTopWeight = topWeight(newSegments);
+  const prevTopWeight = topWeight(prevSegments);
+
+  if (newTopWeight > prevTopWeight) return "up";
+  if (newTopWeight === prevTopWeight && newTotalReps > prevTotalReps) return "up";
+  if (newTopWeight === prevTopWeight && newTotalReps === prevTotalReps) return "equal";
+  return "down";
+}
+
+async function getTodaySets(exerciseId, today) {
+  const sets = await DB.getSetsForExercise(exerciseId);
+  return sets.filter((s) => s.date === today).sort((a, b) => a.setNumber - b.setNumber);
+}
+
+/** Series de la sesion anterior (la fecha mas reciente distinta de hoy). */
+async function getPreviousSession(exerciseId, today) {
+  const sets = await DB.getSetsForExercise(exerciseId);
+  const previous = sets.find((s) => s.date !== today);
+  if (!previous) return [];
+  return sets
+    .filter((s) => s.date === previous.date)
+    .sort((a, b) => a.setNumber - b.setNumber);
+}
