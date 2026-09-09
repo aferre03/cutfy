@@ -1,7 +1,9 @@
-// Cache-first del "app shell" para que Cutfy funcione sin conexion una vez
-// abierta al menos una vez. Los datos reales viven en IndexedDB, no aqui.
+// Network-first: con conexion siempre coge la version mas nueva al momento
+// (y va guardando copia); sin conexion cae a esa copia guardada, para que
+// Cutfy siga funcionando en el gym sin señal. Los datos reales viven en
+// IndexedDB, no aqui.
 
-const CACHE_NAME = "cutfy-cache-v9";
+const CACHE_NAME = "cutfy-cache-v10";
 const ASSETS = [
   "./",
   "./index.html",
@@ -45,15 +47,12 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
