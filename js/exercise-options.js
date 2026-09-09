@@ -60,11 +60,9 @@ function bindMachineSettingsBox(container, exercise) {
 }
 
 function openMachineConfigSheet(exercise, onSaved) {
-  const overlay = document.createElement("div");
-  overlay.className = "sheet-overlay";
   const active = new Set(exercise.machineFields || []);
 
-  overlay.innerHTML = `
+  const overlay = openSheetOverlay(`
     <div class="sheet">
       <div class="sheet-title">¿Qué ajustes tiene esta máquina?</div>
       <p class="hint">Marca los que apliquen. Se recordará el valor (1-9) que pongas cada vez que entrenes este ejercicio.</p>
@@ -81,7 +79,7 @@ function openMachineConfigSheet(exercise, onSaved) {
       <button class="primary-btn" id="machine-save">Guardar</button>
       <button class="secondary-btn" id="machine-cancel">Cancelar</button>
     </div>
-  `;
+  `);
 
   overlay.querySelectorAll("input[type=checkbox]").forEach((cb) => {
     cb.addEventListener("change", () => {
@@ -97,18 +95,14 @@ function openMachineConfigSheet(exercise, onSaved) {
     overlay.remove();
     onSaved();
   });
-
-  document.body.appendChild(overlay);
 }
 
 function openAlternativesSheet(exercise, onChanged) {
-  const overlay = document.createElement("div");
-  overlay.className = "sheet-overlay";
   const alternatives = exercise.alternatives || [];
   const today = todayISO();
   const swappedNow = exercise.swapToday && exercise.swapToday.date === today;
 
-  overlay.innerHTML = `
+  const overlay = openSheetOverlay(`
     <div class="sheet">
       <div class="sheet-title">Alternativas a ${escapeHtml(exercise.name)}</div>
       ${
@@ -138,7 +132,7 @@ function openAlternativesSheet(exercise, onChanged) {
       }
       <button class="secondary-btn" id="alt-cancel">Cerrar</button>
     </div>
-  `;
+  `);
 
   overlay.querySelector("#alt-cancel").addEventListener("click", () => overlay.remove());
 
@@ -173,8 +167,6 @@ function openAlternativesSheet(exercise, onChanged) {
       onChanged();
     });
   });
-
-  document.body.appendChild(overlay);
 }
 
 window.effectiveExercise = effectiveExercise;

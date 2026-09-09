@@ -53,6 +53,23 @@ async function getTodaySets(exerciseId, today) {
   return sets.filter((s) => s.date === today).sort((a, b) => a.setNumber - b.setNumber);
 }
 
+/** Crea una hoja modal (.sheet-overlay) con el HTML dado: quita cualquier
+ * otra hoja que hubiera quedado abierta (p.ej. por un doble tap) y permite
+ * cerrarla tocando fuera del panel, para que nunca se quede algo invisible
+ * bloqueando la pantalla. Devuelve el overlay para que el que la abre le
+ * anada sus propios listeners a los botones de dentro. */
+function openSheetOverlay(innerHtml) {
+  document.querySelectorAll(".sheet-overlay").forEach((el) => el.remove());
+  const overlay = document.createElement("div");
+  overlay.className = "sheet-overlay";
+  overlay.innerHTML = innerHtml;
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
 /** Series de la sesion anterior (la fecha mas reciente distinta de hoy). */
 async function getPreviousSession(exerciseId, today) {
   const sets = await DB.getSetsForExercise(exerciseId);

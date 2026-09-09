@@ -74,9 +74,7 @@ async function renderSettingsView(container) {
 
 function openExerciseEditSheet(exercise, dayId, onSaved) {
   const isNew = !exercise;
-  const overlay = document.createElement("div");
-  overlay.className = "sheet-overlay";
-  overlay.innerHTML = `
+  const overlay = openSheetOverlay(`
     <div class="sheet">
       <div class="sheet-title">${isNew ? "Nuevo ejercicio" : "Editar ejercicio"}</div>
 
@@ -118,7 +116,7 @@ function openExerciseEditSheet(exercise, dayId, onSaved) {
       ${!isNew ? `<button class="secondary-btn" id="edit-delete">Borrar ejercicio</button>` : ""}
       <button class="secondary-btn" id="edit-cancel">Cancelar</button>
     </div>
-  `;
+  `);
 
   overlay.querySelector("#edit-cancel").addEventListener("click", () => overlay.remove());
 
@@ -171,8 +169,6 @@ function openExerciseEditSheet(exercise, dayId, onSaved) {
     overlay.remove();
     onSaved();
   });
-
-  document.body.appendChild(overlay);
 }
 
 window.renderSettingsView = renderSettingsView;

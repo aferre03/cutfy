@@ -125,6 +125,8 @@ async function renderWorkoutView(container) {
   const finishBtn = document.getElementById("finish-day-btn");
   if (finishBtn) {
     finishBtn.addEventListener("click", async () => {
+      if (finishBtn.disabled) return;
+      finishBtn.disabled = true;
       await finishDay(settings.lastDayId, today, () => renderWorkoutView(container));
     });
   }
@@ -148,16 +150,14 @@ async function finishDay(dayId, date, onDone) {
     exerciseCount: exerciseIds.size,
   });
 
-  const overlay = document.createElement("div");
-  overlay.className = "sheet-overlay";
-  overlay.innerHTML = `
+  const overlay = openSheetOverlay(`
     <div class="sheet">
       <div class="sheet-title">¡Sesión guardada! 💪</div>
       <p class="hint">${todaySets.length} series en ${exerciseIds.size} ejercicios (${DAY_LABELS[dayId]}).</p>
       <button class="primary-btn" id="finish-view-history">Ver historial</button>
       <button class="secondary-btn" id="finish-close">Cerrar</button>
     </div>
-  `;
+  `);
   overlay.querySelector("#finish-close").addEventListener("click", () => {
     overlay.remove();
     onDone();
@@ -168,7 +168,6 @@ async function finishDay(dayId, date, onDone) {
     renderNav();
     renderView();
   });
-  document.body.appendChild(overlay);
 }
 
 async function renderLogSetScreen(container, exerciseId) {
@@ -356,7 +355,11 @@ async function renderLogSetScreen(container, exerciseId) {
       paint();
     });
 
-    document.getElementById("save-set-btn").addEventListener("click", async () => {
+    document.getElementById("save-set-btn").addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      btn.disabled = true;
+
       const note = document.getElementById("set-note").value.trim();
       const newSet = {
         exerciseId,

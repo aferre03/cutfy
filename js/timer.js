@@ -36,6 +36,15 @@ function formatSeconds(total) {
 }
 
 function showRestTimer(initialSeconds, comparison, onDone) {
+  // Por si un doble tap en "Guardar serie" ya habia disparado un temporizador:
+  // sin esto, el overlay viejo se queda apilado encima de todo (y su interval
+  // sigue corriendo de fondo), bloqueando cualquier toque aunque no se vea
+  // (el bug de "las pestañas no reaccionan").
+  document.querySelectorAll(".rest-overlay").forEach((el) => {
+    clearInterval(el._restInterval);
+    el.remove();
+  });
+
   let remaining = initialSeconds;
   let finished = false;
 
@@ -92,6 +101,7 @@ function showRestTimer(initialSeconds, comparison, onDone) {
     }
     paint();
   }, 1000);
+  overlay._restInterval = interval;
 
   paint();
 }
