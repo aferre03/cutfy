@@ -87,6 +87,7 @@ const SEED_SETTINGS = {
   suggestedDayOverride: null,
   routineVersion: ROUTINE_VERSION,
   routineCustomized: false,
+  accentColor: null,
 };
 
 async function ensureSeeded() {

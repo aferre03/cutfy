@@ -291,7 +291,15 @@ async function renderLogSetScreen(container, exerciseId) {
             <span class="stepper-title">Reps</span>
             <div class="stepper">
               <button class="stepper-btn" data-action="reps-dec" data-i="${i}">−</button>
-              <span class="stepper-value">${seg.reps}</span>
+              <input
+                type="number"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                class="stepper-input"
+                data-field="reps"
+                data-i="${i}"
+                value="${seg.reps}"
+              />
               <button class="stepper-btn" data-action="reps-inc" data-i="${i}">+</button>
             </div>
           </div>
@@ -300,7 +308,15 @@ async function renderLogSetScreen(container, exerciseId) {
             <div class="stepper stepper-wide">
               <button class="stepper-btn" data-action="weight-dec5" data-i="${i}">−5</button>
               <button class="stepper-btn" data-action="weight-dec1" data-i="${i}">−1</button>
-              <span class="stepper-value">${seg.weight}</span>
+              <input
+                type="number"
+                inputmode="decimal"
+                step="0.5"
+                class="stepper-input"
+                data-field="weight"
+                data-i="${i}"
+                value="${seg.weight}"
+              />
               <button class="stepper-btn" data-action="weight-inc1" data-i="${i}">+1</button>
               <button class="stepper-btn" data-action="weight-inc5" data-i="${i}">+5</button>
             </div>
@@ -400,6 +416,20 @@ async function renderLogSetScreen(container, exerciseId) {
         if (action === "weight-dec1") seg.weight = Math.max(0, seg.weight - 1);
         if (action === "weight-inc5") seg.weight += 5;
         if (action === "weight-dec5") seg.weight = Math.max(0, seg.weight - 5);
+        paint();
+      });
+    });
+
+    // Al escribir directamente con el teclado (en vez de usar los botones
+    // +/-), solo se actualiza al terminar (change), no en cada tecla, para
+    // no perder el foco repintando la pantalla mientras se escribe.
+    container.querySelectorAll(".stepper-input").forEach((input) => {
+      input.addEventListener("change", () => {
+        const i = Number(input.dataset.i);
+        const field = input.dataset.field;
+        const seg = segmentsState[i];
+        const val = Math.max(0, Number(input.value) || 0);
+        seg[field] = val;
         paint();
       });
     });

@@ -84,14 +84,14 @@ async function renderWeightView(container) {
       }
 
       <label class="field-label" for="height-input">Tu altura (cm)</label>
-      <input type="number" id="height-input" class="note-input" min="100" max="250" placeholder="ej. 178" value="${
+      <input type="number" inputmode="numeric" pattern="[0-9]*" id="height-input" class="note-input" min="100" max="250" placeholder="ej. 178" value="${
         heightCm ?? ""
       }" />
 
       <label class="field-label" for="weight-date">Registrar peso</label>
       <div class="weight-log-row">
         <input type="date" id="weight-date" class="note-input" max="${today}" value="${today}" />
-        <input type="number" id="weight-input" class="note-input" step="0.1" min="30" max="300" placeholder="kg" value="${
+        <input type="number" inputmode="decimal" id="weight-input" class="note-input" step="0.1" min="30" max="300" placeholder="kg" value="${
           todayEntry ? todayEntry.weightKg : ""
         }" />
       </div>

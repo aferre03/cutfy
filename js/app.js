@@ -13,6 +13,7 @@ const appState = { view: "workout" };
 
 async function init() {
   await ensureSeeded();
+  await initTheme();
   await loadDays();
   renderNav();
   await renderView();

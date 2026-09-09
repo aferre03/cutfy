@@ -11,6 +11,7 @@ function formatRest(seconds) {
 }
 
 async function renderSettingsView(container) {
+  const settings = await DB.get("settings", "main");
   const dayId = settingsState.selectedDayId && getDayIds().includes(settingsState.selectedDayId)
     ? settingsState.selectedDayId
     : getDayIds()[0];
@@ -37,6 +38,22 @@ async function renderSettingsView(container) {
     .join("");
 
   container.innerHTML = `
+    <div class="theme-section">
+      <h2 class="section-title">🎨 Color de la app</h2>
+      <div class="theme-swatches">
+        ${ACCENT_PRESETS.map(
+          (color) => `
+          <button class="theme-swatch ${settings.accentColor === color ? "active" : ""}" data-color="${color}" style="background:${color}" title="${color}"></button>
+        `
+        ).join("")}
+      </div>
+      <div class="theme-custom-row">
+        <input type="color" id="theme-custom-picker" value="${settings.accentColor || "#d11507"}" title="Color personalizado" />
+        <button class="secondary-btn" id="theme-reset-btn">Restablecer</button>
+      </div>
+    </div>
+
+    <h2 class="section-title">Días y ejercicios</h2>
     <div class="day-tabs-row">
       <div class="day-tabs">
         ${getDayIds()
@@ -50,6 +67,19 @@ async function renderSettingsView(container) {
     <ul class="exercise-list">${rows || `<p class="hint">Sin ejercicios en ${dayLabel(dayId)} todavía.</p>`}</ul>
     <button class="primary-btn" id="add-exercise-btn">+ Añadir ejercicio a ${dayLabel(dayId)}</button>
   `;
+
+  async function setAccentColor(color) {
+    applyAccentColor(color);
+    settings.accentColor = color;
+    await DB.put("settings", settings);
+    renderSettingsView(container);
+  }
+
+  container.querySelectorAll(".theme-swatch").forEach((btn) => {
+    btn.addEventListener("click", () => setAccentColor(btn.dataset.color));
+  });
+  document.getElementById("theme-custom-picker").addEventListener("change", (e) => setAccentColor(e.target.value));
+  document.getElementById("theme-reset-btn").addEventListener("click", () => setAccentColor(null));
 
   document.getElementById("manage-days-btn").addEventListener("click", () => {
     openManageDaysSheet(() => renderSettingsView(container));
@@ -98,24 +128,24 @@ function openExerciseEditSheet(exercise, dayId, onSaved) {
       <div class="field-row">
         <div>
           <label class="field-label" for="f-sets">Series</label>
-          <input type="number" id="f-sets" class="note-input" min="1" max="10" value="${exercise?.plannedSets ?? 3}" />
+          <input type="number" inputmode="numeric" pattern="[0-9]*" id="f-sets" class="note-input" min="1" max="10" value="${exercise?.plannedSets ?? 3}" />
         </div>
         <div>
           <label class="field-label" for="f-reps-low">Reps min</label>
-          <input type="number" id="f-reps-low" class="note-input" min="1" max="50" value="${
+          <input type="number" inputmode="numeric" pattern="[0-9]*" id="f-reps-low" class="note-input" min="1" max="50" value="${
             exercise?.repsLow ?? 8
           }" />
         </div>
         <div>
           <label class="field-label" for="f-reps-high">Reps max</label>
-          <input type="number" id="f-reps-high" class="note-input" min="1" max="50" value="${
+          <input type="number" inputmode="numeric" pattern="[0-9]*" id="f-reps-high" class="note-input" min="1" max="50" value="${
             exercise?.repsHigh ?? 12
           }" />
         </div>
       </div>
 
       <label class="field-label" for="f-rest">Descanso (segundos)</label>
-      <input type="number" id="f-rest" class="note-input" min="15" max="600" step="15" value="${
+      <input type="number" inputmode="numeric" pattern="[0-9]*" id="f-rest" class="note-input" min="15" max="600" step="15" value="${
         exercise?.defaultRestSeconds ?? 90
       }" />
 
