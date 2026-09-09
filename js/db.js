@@ -2,7 +2,7 @@
 // a traves de las funciones de `DB`, nunca hablando con IndexedDB directamente.
 
 const DB_NAME = "cutfy-db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 function openDatabase() {
   return new Promise((resolve, reject) => {
@@ -57,6 +57,11 @@ function openDatabase() {
 
       if (!db.objectStoreNames.contains("settings")) {
         db.createObjectStore("settings", { keyPath: "id" });
+      }
+
+      if (!db.objectStoreNames.contains("sessions")) {
+        const store = db.createObjectStore("sessions", { keyPath: "id" });
+        store.createIndex("byDate", "date");
       }
     };
 

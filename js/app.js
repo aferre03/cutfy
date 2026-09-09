@@ -1,6 +1,5 @@
 // Punto de entrada: siembra datos, dibuja la navegacion y registra el
-// service worker. Las pestanas distintas de "Entreno" son un placeholder
-// por ahora (fase 2: historial, nutricion, peso, ajustes).
+// service worker. Nutricion y Peso siguen como placeholder por ahora.
 
 const TABS = [
   { id: "workout", label: "Entreno", icon: "🏋️" },
@@ -49,15 +48,21 @@ async function renderView() {
     await renderWorkoutView(container);
     return;
   }
+  if (appState.view === "history") {
+    await renderHistoryView(container);
+    return;
+  }
+  if (appState.view === "settings") {
+    await renderSettingsView(container);
+    return;
+  }
   container.innerHTML = renderComingSoon(appState.view);
 }
 
 function renderComingSoon(view) {
   const titles = {
-    history: "Historial y progresión",
     nutrition: "Nutrición",
     weight: "Peso corporal",
-    settings: "Ajustes",
   };
   return `
     <div class="coming-soon">

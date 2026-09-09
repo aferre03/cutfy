@@ -8,6 +8,18 @@ const workoutState = {
   activeExerciseId: null,
 };
 
+/** Series extra pedidas hoy por ejercicio (no persistidas: viven mientras
+ * dura la sesion de la pestana). Clave `${exerciseId}|${date}`. */
+const extraSetsRequested = {};
+
+function extraSetsKey(exerciseId, date) {
+  return `${exerciseId}|${date}`;
+}
+
+async function getDayExercises(dayId) {
+  return (await DB.getByIndex("exercises", "byDay", dayId)).sort((a, b) => a.order - b.order);
+}
+
 /** Que dia toca segun el ciclo Push > Pull > Leg > (descanso) > repetir.
  * Si ya se ha entrenado hoy, se queda en ese mismo dia en vez de avanzar. */
 function suggestedDayId(settings) {
@@ -36,11 +48,10 @@ async function renderWorkoutView(container) {
     return renderLogSetScreen(container, workoutState.activeExerciseId);
   }
 
-  const exercises = (
-    await DB.getByIndex("exercises", "byDay", workoutState.selectedDayId)
-  ).sort((a, b) => a.order - b.order);
+  const exercises = await getDayExercises(workoutState.selectedDayId);
 
   const today = todayISO();
+  const trainedToday = settings.lastDayDate === today;
   const suggestion = suggestedDayId(settings);
 
   const rows = await Promise.all(
@@ -82,6 +93,11 @@ async function renderWorkoutView(container) {
       ).join("")}
     </div>
     <ul class="exercise-list">${rows.join("")}</ul>
+    ${
+      trainedToday
+        ? `<button class="primary-btn finish-day-btn" id="finish-day-btn">✅ Hemos terminado</button>`
+        : ""
+    }
   `;
 
   container.querySelectorAll(".day-tab").forEach((btn) => {
@@ -105,6 +121,54 @@ async function renderWorkoutView(container) {
       openAlternativesSheet(ex, () => renderWorkoutView(container));
     });
   });
+
+  const finishBtn = document.getElementById("finish-day-btn");
+  if (finishBtn) {
+    finishBtn.addEventListener("click", async () => {
+      await finishDay(settings.lastDayId, today, () => renderWorkoutView(container));
+    });
+  }
+}
+
+/** Cierra la sesion de hoy: la guarda en `sessions` (para que salga marcada
+ * como completada en el Historial) y muestra un resumen. Las series ya
+ * estaban guardadas desde que se registro cada una; esto solo anade el
+ * cierre explicito que se ve reflejado en el historial. */
+async function finishDay(dayId, date, onDone) {
+  const allSets = await DB.getAll("sets");
+  const todaySets = allSets.filter((s) => s.date === date);
+  const exerciseIds = new Set(todaySets.map((s) => s.exerciseId));
+
+  await DB.put("sessions", {
+    id: `${dayId}_${date}`,
+    dayId,
+    date,
+    finishedAt: new Date().toISOString(),
+    setCount: todaySets.length,
+    exerciseCount: exerciseIds.size,
+  });
+
+  const overlay = document.createElement("div");
+  overlay.className = "sheet-overlay";
+  overlay.innerHTML = `
+    <div class="sheet">
+      <div class="sheet-title">¡Sesión guardada! 💪</div>
+      <p class="hint">${todaySets.length} series en ${exerciseIds.size} ejercicios (${DAY_LABELS[dayId]}).</p>
+      <button class="primary-btn" id="finish-view-history">Ver historial</button>
+      <button class="secondary-btn" id="finish-close">Cerrar</button>
+    </div>
+  `;
+  overlay.querySelector("#finish-close").addEventListener("click", () => {
+    overlay.remove();
+    onDone();
+  });
+  overlay.querySelector("#finish-view-history").addEventListener("click", () => {
+    overlay.remove();
+    appState.view = "history";
+    renderNav();
+    renderView();
+  });
+  document.body.appendChild(overlay);
 }
 
 async function renderLogSetScreen(container, exerciseId) {
@@ -114,7 +178,13 @@ async function renderLogSetScreen(container, exerciseId) {
   const todaySets = await getTodaySets(exerciseId, today);
   const previousSets = await getPreviousSession(exerciseId, today);
   const setNumber = todaySets.length + 1;
-  const isComplete = todaySets.length >= exercise.plannedSets;
+  const extraKey = extraSetsKey(exerciseId, today);
+  const targetSets = exercise.plannedSets + (extraSetsRequested[extraKey] || 0);
+  const isComplete = todaySets.length >= targetSets;
+
+  const dayExercises = await getDayExercises(rawExercise.dayId);
+  const currentIndex = dayExercises.findIndex((e) => e.id === exerciseId);
+  const nextExercise = dayExercises[currentIndex + 1] || null;
 
   const previousForThisSet = previousSets[setNumber - 1];
   const lastKnown = previousForThisSet || previousSets[previousSets.length - 1];
@@ -204,7 +274,12 @@ async function renderLogSetScreen(container, exerciseId) {
       exercise.note ? " · " + escapeHtml(exercise.note) : ""
     }
         </div>
-        <button class="secondary-btn" id="swap-exercise-btn">🔄 Cambiar ejercicio</button>
+        <div class="row-btn-pair">
+          <button class="secondary-btn" id="swap-exercise-btn">🔄 Cambiar ejercicio</button>
+          <button class="secondary-btn" id="next-exercise-btn">${
+            nextExercise ? `Siguiente →` : `Volver a la lista`
+          }</button>
+        </div>
 
         ${renderMachineSettingsBox(rawExercise)}
 
@@ -214,7 +289,11 @@ async function renderLogSetScreen(container, exerciseId) {
           isComplete
             ? `<div class="complete-banner">✅ Ejercicio completo (${todaySets.length}/${exercise.plannedSets})</div>
                <button class="secondary-btn" id="extra-set-btn">Añadir serie extra</button>`
-            : `<div class="set-counter">Serie ${setNumber} de ${exercise.plannedSets}</div>
+            : `<div class="set-counter">${
+                setNumber <= exercise.plannedSets
+                  ? `Serie ${setNumber} de ${exercise.plannedSets}`
+                  : `Serie ${setNumber} · extra`
+              }</div>
                <div id="segments-container">${renderSegments()}</div>
                <button class="secondary-btn" id="add-segment-btn">+ Nuevo segmento (menos/más peso, sin descanso)</button>
                <input type="text" id="set-note" class="note-input" placeholder="Nota (opcional, ej. 'N' agarre neutro)" maxlength="40" />
@@ -237,9 +316,19 @@ async function renderLogSetScreen(container, exerciseId) {
       openAlternativesSheet(rawExercise, () => renderLogSetScreen(container, exerciseId));
     });
 
+    document.getElementById("next-exercise-btn").addEventListener("click", () => {
+      if (nextExercise) {
+        workoutState.activeExerciseId = nextExercise.id;
+        renderLogSetScreen(container, nextExercise.id);
+      } else {
+        workoutState.activeExerciseId = null;
+        renderWorkoutView(container);
+      }
+    });
+
     if (isComplete) {
       document.getElementById("extra-set-btn").addEventListener("click", () => {
-        exercise.plannedSets = todaySets.length + 1;
+        extraSetsRequested[extraKey] = (extraSetsRequested[extraKey] || 0) + 1;
         renderLogSetScreen(container, exerciseId);
       });
       return;

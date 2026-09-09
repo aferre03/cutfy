@@ -83,6 +83,7 @@ const SEED_SETTINGS = {
   lastDayId: null,
   lastDayDate: null,
   routineVersion: ROUTINE_VERSION,
+  routineCustomized: false,
 };
 
 async function ensureSeeded() {
@@ -130,10 +131,16 @@ async function migrateExercises() {
  * (dia, orden). Conserva el id (y por tanto el historial de series), los
  * ajustes de maquina ya configurados y cualquier swap activo; solo pisa los
  * datos que definen el ejercicio en si. Se ejecuta una unica vez por bump
- * de ROUTINE_VERSION. */
+ * de ROUTINE_VERSION, y nunca si la persona ya ha editado su rutina a mano
+ * desde Ajustes (routineCustomized) — eso es solo para la rutina de fabrica. */
 async function syncRoutine() {
   const settings = await DB.get("settings", "main");
   if (settings.routineVersion === ROUTINE_VERSION) return;
+  if (settings.routineCustomized) {
+    settings.routineVersion = ROUTINE_VERSION;
+    await DB.put("settings", settings);
+    return;
+  }
 
   const exercises = await DB.getAll("exercises");
   for (const seedEx of SEED_EXERCISES) {
@@ -153,4 +160,15 @@ async function syncRoutine() {
   await DB.put("settings", settings);
 }
 
+/** Marca la rutina como personalizada para que syncRoutine no la vuelva a
+ * pisar con la rutina de fabrica en el futuro. Llamar tras cualquier
+ * edicion manual de un ejercicio (crear, editar, borrar, cambio definitivo). */
+async function markRoutineCustomized() {
+  const settings = await DB.get("settings", "main");
+  if (settings.routineCustomized) return;
+  settings.routineCustomized = true;
+  await DB.put("settings", settings);
+}
+
 window.ensureSeeded = ensureSeeded;
+window.markRoutineCustomized = markRoutineCustomized;

@@ -1,12 +1,14 @@
 :root {
-  --bg: #0f172a;
-  --panel: #1a2540;
-  --panel-alt: #22304f;
-  --text: #f1f5f9;
-  --muted: #94a3b8;
-  --border: #2c3b5c;
-  --accent: #22c55e;
-  --accent-dark: #16a34a;
+  --bg: #0a0a0a;
+  --bg-rgb: 10, 10, 10;
+  --panel: #161616;
+  --panel-alt: #212121;
+  --text: #f5f5f4;
+  --muted: #9a9a9a;
+  --border: #2b2b2b;
+  --accent: #d11507;
+  --accent-rgb: 209, 21, 7;
+  --accent-dark: #9d1005;
   --up: #22c55e;
   --equal: #eab308;
   --down: #ef4444;
@@ -131,6 +133,11 @@ html, body {
 .title-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .title-row .exercise-title { flex: 1; }
 
+.row-btn-pair { display: flex; gap: 0.5rem; }
+.row-btn-pair > button { flex: 1; width: auto; margin-bottom: 0.9rem; }
+
+.finish-day-btn { margin-top: 1rem; }
+
 .swap-banner {
   background: rgba(234, 179, 8, 0.12);
   border: 1px solid var(--equal);
@@ -229,12 +236,12 @@ html, body {
   cursor: pointer;
   margin-bottom: 0.6rem;
 }
-.primary-btn { background: var(--accent); color: #052e14; }
+.primary-btn { background: var(--accent); color: #fff; }
 .primary-btn:active { background: var(--accent-dark); }
 .secondary-btn { background: var(--panel-alt); color: var(--text); border: 1px solid var(--border); }
 
 .complete-banner {
-  background: rgba(34, 197, 94, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
   border: 1px solid var(--accent-dark);
   color: var(--accent);
   border-radius: 10px;
@@ -251,7 +258,7 @@ html, body {
 .rest-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.97);
+  background: rgba(var(--bg-rgb), 0.97);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -286,7 +293,7 @@ html, body {
 .sheet-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(var(--bg-rgb), 0.85);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -330,3 +337,43 @@ html, body {
 .alt-name { font-weight: 600; font-size: 0.95rem; }
 .alt-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
 .alt-actions .secondary-btn { width: auto; padding: 0.5rem 0.8rem; margin-bottom: 0; font-size: 0.85rem; }
+
+/* --- Historial --- */
+.section-title { margin: 0 0 1rem; font-size: 1.2rem; }
+
+.history-day {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.6rem;
+  cursor: pointer;
+}
+.history-day-main { min-width: 0; }
+.history-day-label { font-weight: 700; font-size: 1rem; }
+.history-day-date { color: var(--muted); font-size: 0.85rem; margin-top: 0.15rem; }
+.history-done-badge { margin-left: 0.15rem; }
+
+.history-day-percent { font-weight: 800; font-size: 1.3rem; margin-left: 0.75rem; white-space: nowrap; }
+.history-day-percent.pct-up, .exercise-meta .pct-up { color: var(--up); }
+.history-day-percent.pct-equal, .exercise-meta .pct-equal { color: var(--equal); }
+.history-day-percent.pct-down, .exercise-meta .pct-down { color: var(--down); }
+
+.history-exercise { padding: 0.5rem 0; border-top: 1px solid var(--border); }
+.history-exercise:first-of-type { border-top: none; padding-top: 0.5rem; }
+.history-exercise-name { font-weight: 600; font-size: 0.9rem; }
+.history-exercise-sets { color: var(--muted); font-size: 0.85rem; margin-top: 0.1rem; }
+
+/* --- Editor de ejercicios (Ajustes) --- */
+.field-label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0.7rem 0 0.3rem;
+}
+.field-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+.field-row .note-input { margin-bottom: 0; }
+.sheet .note-input:first-of-type { margin-top: 0; }

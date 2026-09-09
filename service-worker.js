@@ -1,7 +1,7 @@
 // Cache-first del "app shell" para que Cutfy funcione sin conexion una vez
 // abierta al menos una vez. Los datos reales viven en IndexedDB, no aqui.
 
-const CACHE_NAME = "cutfy-cache-v3";
+const CACHE_NAME = "cutfy-cache-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -13,6 +13,8 @@ const ASSETS = [
   "./js/timer.js",
   "./js/exercise-options.js",
   "./js/workout.js",
+  "./js/history.js",
+  "./js/settings.js",
   "./js/app.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

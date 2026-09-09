@@ -10,6 +10,20 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+const DATE_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "numeric",
+  month: "short",
+});
+
+/** "Hoy", "Ayer" o "9 sept" para una fecha ISO (YYYY-MM-DD). */
+function formatDateLabel(dateISO) {
+  const today = todayISO();
+  if (dateISO === today) return "Hoy";
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (dateISO === yesterday) return "Ayer";
+  return DATE_LABEL_FORMATTER.format(new Date(`${dateISO}T00:00:00`));
+}
+
 function formatSegments(segments) {
   return segments.map((s) => `${s.reps}×${s.weight}kg`).join(" + ");
 }

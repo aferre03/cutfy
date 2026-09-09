@@ -166,6 +166,7 @@ function openAlternativesSheet(exercise, onChanged) {
         exercise.defaultRestSeconds = chosen.defaultRestSeconds ?? exercise.defaultRestSeconds;
         exercise.note = chosen.note ?? exercise.note;
         exercise.swapToday = null;
+        await markRoutineCustomized();
       }
       await DB.put("exercises", exercise);
       overlay.remove();
