@@ -72,7 +72,7 @@ async function renderHistoryView(container) {
       return `
         <div class="history-day" data-date="${date}">
           <div class="history-day-main">
-            <div class="history-day-label">${DAY_LABELS[dayId] || "Entreno"}${
+            <div class="history-day-label">${dayLabel(dayId)}${
         session ? ' <span class="history-done-badge">✅</span>' : ""
       }</div>
             <div class="history-day-date">${formatDateLabel(date)}</div>
@@ -154,7 +154,7 @@ function renderHistoryDetail(container, date, summary) {
   container.innerHTML = `
     <div class="history-view">
       <button class="back-btn" id="history-back">← Historial</button>
-      <h2 class="exercise-title">${DAY_LABELS[dayId] || "Entreno"}</h2>
+      <h2 class="exercise-title">${dayLabel(dayId)}</h2>
       <div class="exercise-meta">
         ${formatDateLabel(date)} · <span class="${percentClass(percent)}">${percent}% completado</span>${
     session ? " · ✅ cerrado" : ""
@@ -186,7 +186,7 @@ function renderHistoryDetail(container, date, summary) {
 async function openAddDaySheet(container) {
   const today = todayISO();
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  let selectedDay = "push";
+  let selectedDay = getDayIds()[0];
   let dayExercises = await getDayExercises(selectedDay);
   const counts = {};
 
@@ -208,9 +208,11 @@ async function openAddDaySheet(container) {
 
       <label class="field-label">Día</label>
       <div class="day-tabs">
-        ${DAY_CYCLE.map(
-          (id) => `<button class="day-tab ${id === selectedDay ? "active" : ""}" data-day-id="${id}">${DAY_LABELS[id]}</button>`
-        ).join("")}
+        ${getDayIds()
+          .map(
+            (id) => `<button class="day-tab ${id === selectedDay ? "active" : ""}" data-day-id="${id}">${dayLabel(id)}</button>`
+          )
+          .join("")}
       </div>
 
       <div class="sheet-options">

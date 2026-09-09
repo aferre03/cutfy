@@ -1,8 +1,8 @@
-// Pantalla de ajustes: editor de ejercicios. Cada persona que instale la
-// app puede crear, editar o borrar los ejercicios de sus propios dias
-// Push/Pull/Leg para llevar su propia rutina, no la de fabrica.
+// Pantalla de ajustes: gestion de dias y editor de ejercicios. Cada persona
+// que instale la app puede crear sus propios dias y ejercicios para llevar
+// su propia rutina, no la de fabrica.
 
-const settingsState = { selectedDayId: "push" };
+const settingsState = { selectedDayId: null };
 
 function formatRest(seconds) {
   const m = Math.floor(seconds / 60);
@@ -11,7 +11,10 @@ function formatRest(seconds) {
 }
 
 async function renderSettingsView(container) {
-  const dayId = settingsState.selectedDayId;
+  const dayId = settingsState.selectedDayId && getDayIds().includes(settingsState.selectedDayId)
+    ? settingsState.selectedDayId
+    : getDayIds()[0];
+  settingsState.selectedDayId = dayId;
   const exercises = await getDayExercises(dayId);
 
   const rows = exercises
@@ -34,14 +37,23 @@ async function renderSettingsView(container) {
     .join("");
 
   container.innerHTML = `
-    <div class="day-tabs">
-      ${DAY_CYCLE.map(
-        (id) => `<button class="day-tab ${id === dayId ? "active" : ""}" data-day-id="${id}">${DAY_LABELS[id]}</button>`
-      ).join("")}
+    <div class="day-tabs-row">
+      <div class="day-tabs">
+        ${getDayIds()
+          .map(
+            (id) => `<button class="day-tab ${id === dayId ? "active" : ""}" data-day-id="${id}">${dayLabel(id)}</button>`
+          )
+          .join("")}
+      </div>
+      <button class="row-icon-btn" id="manage-days-btn" title="Gestionar días">📅</button>
     </div>
-    <ul class="exercise-list">${rows || `<p class="hint">Sin ejercicios en ${DAY_LABELS[dayId]} todavía.</p>`}</ul>
-    <button class="primary-btn" id="add-exercise-btn">+ Añadir ejercicio a ${DAY_LABELS[dayId]}</button>
+    <ul class="exercise-list">${rows || `<p class="hint">Sin ejercicios en ${dayLabel(dayId)} todavía.</p>`}</ul>
+    <button class="primary-btn" id="add-exercise-btn">+ Añadir ejercicio a ${dayLabel(dayId)}</button>
   `;
+
+  document.getElementById("manage-days-btn").addEventListener("click", () => {
+    openManageDaysSheet(() => renderSettingsView(container));
+  });
 
   container.querySelectorAll(".day-tab").forEach((btn) => {
     btn.addEventListener("click", () => {

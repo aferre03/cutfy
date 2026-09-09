@@ -1,7 +1,5 @@
 // Pantalla de entreno: selector de dia, lista de ejercicios y registro de series.
-
-const DAY_CYCLE = ["push", "pull", "leg"];
-const DAY_LABELS = { push: "Push", pull: "Pull", leg: "Leg" };
+// Los dias (antes fijos Push/Pull/Leg) son datos editables - ver js/days.js.
 
 const workoutState = {
   selectedDayId: null,
@@ -20,19 +18,20 @@ async function getDayExercises(dayId) {
   return (await DB.getByIndex("exercises", "byDay", dayId)).sort((a, b) => a.order - b.order);
 }
 
-/** Que dia toca segun el ciclo Push > Pull > Leg > (descanso) > repetir.
- * Si hay un dia forzado a mano (suggestedDayOverride), manda por encima de
- * todo hasta que se entrene de verdad. Si no, y ya se ha entrenado hoy sin
- * cerrar con "Hemos terminado", se queda en ese mismo dia en vez de avanzar
- * (para poder seguir metiendo series). En cuanto cambia la fecha, o en
- * cuanto cierras el dia, avanza. */
+/** Que dia toca segun el ciclo de dias de la rutina (en el orden que cada
+ * uno haya configurado). Si hay un dia forzado a mano (suggestedDayOverride),
+ * manda por encima de todo hasta que se entrene de verdad. Si no, y ya se ha
+ * entrenado hoy sin cerrar con "Hemos terminado", se queda en ese mismo dia
+ * en vez de avanzar (para poder seguir metiendo series). En cuanto cambia la
+ * fecha, o en cuanto cierras el dia, avanza. */
 function suggestedDayId(settings) {
   if (settings.suggestedDayOverride) return settings.suggestedDayOverride;
+  const dayIds = getDayIds();
   const today = todayISO();
-  if (!settings.lastDayId) return "push";
+  if (!settings.lastDayId) return dayIds[0];
   if (settings.lastDayDate === today && !settings.dayFinished) return settings.lastDayId;
-  const idx = DAY_CYCLE.indexOf(settings.lastDayId);
-  return DAY_CYCLE[(idx + 1) % DAY_CYCLE.length];
+  const idx = dayIds.indexOf(settings.lastDayId);
+  return dayIds[(idx + 1) % dayIds.length];
 }
 
 async function updateDayCycleBookkeeping(dayId, today) {
@@ -53,11 +52,11 @@ function openSuggestedDaySheet(currentSuggestion, onChanged) {
   const overlay = openSheetOverlay(`
     <div class="sheet">
       <div class="sheet-title">¿Qué día quieres que te sugiera?</div>
-      <p class="hint">Ahora mismo te sugiere ${DAY_LABELS[currentSuggestion]}. En cuanto registres una serie, el ciclo sigue normal desde ese día.</p>
+      <p class="hint">Ahora mismo te sugiere ${dayLabel(currentSuggestion)}. En cuanto registres una serie, el ciclo sigue normal desde ese día.</p>
       <div class="sheet-options">
-        ${DAY_CYCLE.map(
-          (id) => `<button class="secondary-btn suggest-day-btn" data-day-id="${id}">${DAY_LABELS[id]}</button>`
-        ).join("")}
+        ${getDayIds()
+          .map((id) => `<button class="secondary-btn suggest-day-btn" data-day-id="${id}">${dayLabel(id)}</button>`)
+          .join("")}
       </div>
       <button class="secondary-btn" id="suggest-cancel">Cancelar</button>
     </div>
@@ -68,7 +67,7 @@ function openSuggestedDaySheet(currentSuggestion, onChanged) {
   overlay.querySelectorAll(".suggest-day-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const dayId = btn.dataset.dayId;
-      if (!confirm(`¿Cambiar el día sugerido a ${DAY_LABELS[dayId]}?`)) return;
+      if (!confirm(`¿Cambiar el día sugerido a ${dayLabel(dayId)}?`)) return;
       const settings = await DB.get("settings", "main");
       settings.suggestedDayOverride = dayId;
       await DB.put("settings", settings);
@@ -80,7 +79,7 @@ function openSuggestedDaySheet(currentSuggestion, onChanged) {
 
 async function renderWorkoutView(container) {
   const settings = await DB.get("settings", "main");
-  if (!workoutState.selectedDayId) {
+  if (!workoutState.selectedDayId || !getDayIds().includes(workoutState.selectedDayId)) {
     workoutState.selectedDayId = suggestedDayId(settings);
   }
 
@@ -126,12 +125,14 @@ async function renderWorkoutView(container) {
   container.innerHTML = `
     <div class="day-tabs-row">
       <div class="day-tabs">
-        ${DAY_CYCLE.map(
-          (id) => `
+        ${getDayIds()
+          .map(
+            (id) => `
           <button class="day-tab ${id === workoutState.selectedDayId ? "active" : ""}" data-day-id="${id}">
-            ${DAY_LABELS[id]}${id === suggestion ? '<span class="suggested-dot"></span>' : ""}
+            ${dayLabel(id)}${id === suggestion ? '<span class="suggested-dot"></span>' : ""}
           </button>`
-        ).join("")}
+          )
+          .join("")}
       </div>
       <button class="row-icon-btn" id="change-suggestion-btn" title="Cambiar día sugerido">🔀</button>
     </div>
@@ -184,7 +185,7 @@ async function renderWorkoutView(container) {
 
 /** Cierra la sesion de hoy: la guarda en `sessions` (para que salga marcada
  * como completada en el Historial), marca el dia como terminado para que el
- * ciclo Push/Pull/Leg avance ya mismo (sin esperar a que cambie la fecha) y
+ * ciclo de dias avance ya mismo (sin esperar a que cambie la fecha) y
  * muestra un resumen. Las series ya estaban guardadas desde que se registro
  * cada una; esto solo anade el cierre explicito. */
 async function finishDay(dayId, date, onDone) {
@@ -208,7 +209,7 @@ async function finishDay(dayId, date, onDone) {
   const overlay = openSheetOverlay(`
     <div class="sheet">
       <div class="sheet-title">¡Sesión guardada! 💪</div>
-      <p class="hint">${todaySets.length} series en ${exerciseIds.size} ejercicios (${DAY_LABELS[dayId]}).</p>
+      <p class="hint">${todaySets.length} series en ${exerciseIds.size} ejercicios (${dayLabel(dayId)}).</p>
       <button class="primary-btn" id="finish-view-history">Ver historial</button>
       <button class="secondary-btn" id="finish-close">Cerrar</button>
     </div>
@@ -313,7 +314,7 @@ async function renderLogSetScreen(container, exerciseId) {
   function paint() {
     container.innerHTML = `
       <div class="log-set-screen">
-        <button class="back-btn" id="back-to-list">← ${DAY_LABELS[exercise.dayId]}</button>
+        <button class="back-btn" id="back-to-list">← ${dayLabel(exercise.dayId)}</button>
         <div class="title-row">
           <h2 class="exercise-title">${escapeHtml(exercise.name)}</h2>
           <button class="row-icon-btn" id="machine-gear-btn" title="Ajustes de máquina">⚙️</button>

@@ -404,6 +404,21 @@ html, body {
 .weight-row-date { font-weight: 600; font-size: 0.9rem; }
 .weight-row-value { color: var(--muted); font-size: 0.85rem; margin-top: 0.1rem; }
 
+/* --- Gestion de dias (Ajustes) --- */
+.day-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.day-manage-row:last-child { border-bottom: none; }
+.day-manage-arrows { display: flex; gap: 0.3rem; flex-shrink: 0; }
+.day-manage-arrows .row-icon-btn { min-width: 2.2rem; min-height: 2.2rem; font-size: 0.9rem; }
+.day-manage-arrows .row-icon-btn:disabled { opacity: 0.3; }
+.day-manage-name { flex: 1; font-weight: 600; font-size: 0.95rem; min-width: 0; }
+.day-manage-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+
 /* --- Editor de ejercicios (Ajustes) --- */
 .field-label {
   display: block;
