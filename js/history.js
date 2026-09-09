@@ -1,6 +1,8 @@
 // Pantalla de historial: tarjetas por dia (rutina + fecha + % completado)
 // que al pulsarlas abren el detalle de que se hizo en cada ejercicio. Los
-// dias cerrados con "Hemos terminado" llevan una insignia.
+// dias cerrados con "Hemos terminado" llevan una insignia. Tambien permite
+// borrar un dia entero o anadir uno retroactivo (p.ej. si se entreno sin
+// el movil a mano).
 
 const historyState = { openDate: null };
 
@@ -36,22 +38,18 @@ function summarizeDay(date, daySets, exercises, sessionByDate) {
   return { dayId, session, percent, planExercises, byExercise };
 }
 
+async function deleteDay(date) {
+  const [allSets, allSessions] = await Promise.all([DB.getAll("sets"), DB.getAll("sessions")]);
+  for (const s of allSets.filter((s) => s.date === date)) await DB.delete("sets", s.id);
+  for (const sess of allSessions.filter((s) => s.date === date)) await DB.delete("sessions", sess.id);
+}
+
 async function renderHistoryView(container) {
   const [sets, exercises, sessions] = await Promise.all([
     DB.getAll("sets"),
     DB.getAll("exercises"),
     DB.getAll("sessions"),
   ]);
-
-  if (sets.length === 0) {
-    container.innerHTML = `
-      <div class="coming-soon">
-        <h2>Historial</h2>
-        <p class="hint">Aún no hay entrenos registrados. En cuanto guardes tu primera serie aparecerá aquí.</p>
-      </div>
-    `;
-    return;
-  }
 
   const sessionByDate = new Map(sessions.map((s) => [s.date, s]));
   const byDate = new Map();
@@ -79,7 +77,10 @@ async function renderHistoryView(container) {
       }</div>
             <div class="history-day-date">${formatDateLabel(date)}</div>
           </div>
-          <div class="history-day-percent ${percentClass(percent)}">${percent}%</div>
+          <div class="history-day-actions">
+            <div class="history-day-percent ${percentClass(percent)}">${percent}%</div>
+            <button class="row-icon-btn" data-delete-date="${date}" title="Borrar día">🗑️</button>
+          </div>
         </div>
       `;
     })
@@ -88,13 +89,32 @@ async function renderHistoryView(container) {
   container.innerHTML = `
     <div class="history-view">
       <h2 class="section-title">Historial</h2>
-      ${cards}
+      <button class="secondary-btn" id="add-day-btn">+ Añadir día</button>
+      ${
+        dates.length === 0
+          ? `<p class="hint">Aún no hay entrenos registrados. En cuanto guardes tu primera serie aparecerá aquí.</p>`
+          : cards
+      }
     </div>
   `;
+
+  document.getElementById("add-day-btn").addEventListener("click", () => {
+    openAddDaySheet(container);
+  });
 
   container.querySelectorAll(".history-day[data-date]").forEach((card) => {
     card.addEventListener("click", () => {
       historyState.openDate = card.dataset.date;
+      renderHistoryView(container);
+    });
+  });
+
+  container.querySelectorAll("[data-delete-date]").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const date = btn.dataset.deleteDate;
+      if (!confirm(`¿Borrar el entreno del ${formatDateLabel(date)}? No se puede deshacer.`)) return;
+      await deleteDay(date);
       renderHistoryView(container);
     });
   });
@@ -142,6 +162,7 @@ function renderHistoryDetail(container, date, summary) {
       </div>
       ${plannedRows}
       ${orphanRows}
+      <button class="secondary-btn" id="history-delete-day">🗑️ Borrar este día</button>
     </div>
   `;
 
@@ -149,6 +170,131 @@ function renderHistoryDetail(container, date, summary) {
     historyState.openDate = null;
     renderHistoryView(container);
   });
+
+  document.getElementById("history-delete-day").addEventListener("click", async () => {
+    if (!confirm(`¿Borrar el entreno del ${formatDateLabel(date)}? No se puede deshacer.`)) return;
+    await deleteDay(date);
+    historyState.openDate = null;
+    renderHistoryView(container);
+  });
+}
+
+/** Hoja para meter un dia retroactivo (p.ej. entrenaste sin el movil a
+ * mano): fecha + dia + cuantas series hiciste de cada ejercicio de ese dia.
+ * No pide peso/reps exactos por serie, solo el recuento - queda marcado en
+ * el historial y cuenta para el % completado igual que un dia normal. */
+async function openAddDaySheet(container) {
+  const today = todayISO();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  let selectedDay = "push";
+  let dayExercises = await getDayExercises(selectedDay);
+  const counts = {};
+
+  function ensureCounts() {
+    for (const ex of dayExercises) {
+      if (!(ex.id in counts)) counts[ex.id] = ex.plannedSets;
+    }
+  }
+  ensureCounts();
+
+  const overlay = openSheetOverlay(`<div class="sheet" id="add-day-sheet"></div>`);
+  const sheetEl = overlay.querySelector("#add-day-sheet");
+
+  function paint() {
+    sheetEl.innerHTML = `
+      <div class="sheet-title">Añadir día al historial</div>
+      <label class="field-label" for="add-day-date">Fecha</label>
+      <input type="date" id="add-day-date" class="note-input" max="${today}" value="${yesterday}" />
+
+      <label class="field-label">Día</label>
+      <div class="day-tabs">
+        ${DAY_CYCLE.map(
+          (id) => `<button class="day-tab ${id === selectedDay ? "active" : ""}" data-day-id="${id}">${DAY_LABELS[id]}</button>`
+        ).join("")}
+      </div>
+
+      <div class="sheet-options">
+        ${dayExercises
+          .map(
+            (ex) => `
+          <div class="alt-option">
+            <div class="alt-name">${escapeHtml(ex.name)}</div>
+            <div class="stepper">
+              <button class="stepper-btn" data-action="dec" data-ex-id="${ex.id}">−</button>
+              <span class="stepper-value" data-count-value="${ex.id}">${counts[ex.id]}</span>
+              <button class="stepper-btn" data-action="inc" data-ex-id="${ex.id}">+</button>
+            </div>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+
+      <button class="primary-btn" id="add-day-save">Guardar día</button>
+      <button class="secondary-btn" id="add-day-cancel">Cancelar</button>
+    `;
+
+    sheetEl.querySelectorAll(".day-tab").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        selectedDay = btn.dataset.dayId;
+        dayExercises = await getDayExercises(selectedDay);
+        ensureCounts();
+        paint();
+      });
+    });
+
+    sheetEl.querySelectorAll(".stepper-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const exId = Number(btn.dataset.exId);
+        const delta = btn.dataset.action === "inc" ? 1 : -1;
+        counts[exId] = Math.max(0, (counts[exId] || 0) + delta);
+        sheetEl.querySelector(`[data-count-value="${exId}"]`).textContent = counts[exId];
+      });
+    });
+
+    sheetEl.querySelector("#add-day-cancel").addEventListener("click", () => overlay.remove());
+
+    sheetEl.querySelector("#add-day-save").addEventListener("click", async () => {
+      const date = sheetEl.querySelector("#add-day-date").value;
+      if (!date) return;
+
+      const existingSets = await DB.getAll("sets");
+      const hasExisting = existingSets.some((s) => s.date === date);
+      if (hasExisting && !confirm(`Ya hay series registradas el ${formatDateLabel(date)}. ¿Añadir estas de todas formas?`)) {
+        return;
+      }
+
+      let totalSets = 0;
+      for (const ex of dayExercises) {
+        const n = counts[ex.id] || 0;
+        for (let i = 1; i <= n; i++) {
+          await DB.add("sets", {
+            exerciseId: ex.id,
+            date,
+            setNumber: i,
+            segments: [{ reps: ex.repsLow, weight: 0 }],
+            note: "",
+            timestamp: `${date}T12:00:00.000Z`,
+          });
+          totalSets++;
+        }
+      }
+
+      await DB.put("sessions", {
+        id: `${selectedDay}_${date}`,
+        dayId: selectedDay,
+        date,
+        finishedAt: new Date().toISOString(),
+        setCount: totalSets,
+        exerciseCount: dayExercises.filter((ex) => (counts[ex.id] || 0) > 0).length,
+      });
+
+      overlay.remove();
+      renderHistoryView(container);
+    });
+  }
+
+  paint();
 }
 
 window.renderHistoryView = renderHistoryView;

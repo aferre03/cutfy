@@ -21,11 +21,13 @@ async function getDayExercises(dayId) {
 }
 
 /** Que dia toca segun el ciclo Push > Pull > Leg > (descanso) > repetir.
- * Si ya se ha entrenado hoy, se queda en ese mismo dia en vez de avanzar. */
+ * Si ya se ha entrenado hoy y no se ha cerrado con "Hemos terminado", se
+ * queda en ese mismo dia en vez de avanzar (para poder seguir metiendo
+ * series). En cuanto cambia la fecha, o en cuanto cierras el dia, avanza. */
 function suggestedDayId(settings) {
   const today = todayISO();
   if (!settings.lastDayId) return "push";
-  if (settings.lastDayDate === today) return settings.lastDayId;
+  if (settings.lastDayDate === today && !settings.dayFinished) return settings.lastDayId;
   const idx = DAY_CYCLE.indexOf(settings.lastDayId);
   return DAY_CYCLE[(idx + 1) % DAY_CYCLE.length];
 }
@@ -35,6 +37,7 @@ async function updateDayCycleBookkeeping(dayId, today) {
   if (settings.lastDayDate === today) return;
   settings.lastDayId = dayId;
   settings.lastDayDate = today;
+  settings.dayFinished = false;
   await DB.put("settings", settings);
 }
 
@@ -127,15 +130,19 @@ async function renderWorkoutView(container) {
     finishBtn.addEventListener("click", async () => {
       if (finishBtn.disabled) return;
       finishBtn.disabled = true;
-      await finishDay(settings.lastDayId, today, () => renderWorkoutView(container));
+      await finishDay(settings.lastDayId, today, () => {
+        workoutState.selectedDayId = null;
+        renderWorkoutView(container);
+      });
     });
   }
 }
 
 /** Cierra la sesion de hoy: la guarda en `sessions` (para que salga marcada
- * como completada en el Historial) y muestra un resumen. Las series ya
- * estaban guardadas desde que se registro cada una; esto solo anade el
- * cierre explicito que se ve reflejado en el historial. */
+ * como completada en el Historial), marca el dia como terminado para que el
+ * ciclo Push/Pull/Leg avance ya mismo (sin esperar a que cambie la fecha) y
+ * muestra un resumen. Las series ya estaban guardadas desde que se registro
+ * cada una; esto solo anade el cierre explicito. */
 async function finishDay(dayId, date, onDone) {
   const allSets = await DB.getAll("sets");
   const todaySets = allSets.filter((s) => s.date === date);
@@ -149,6 +156,10 @@ async function finishDay(dayId, date, onDone) {
     setCount: todaySets.length,
     exerciseCount: exerciseIds.size,
   });
+
+  const settings = await DB.get("settings", "main");
+  settings.dayFinished = true;
+  await DB.put("settings", settings);
 
   const overlay = openSheetOverlay(`
     <div class="sheet">

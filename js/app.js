@@ -34,8 +34,12 @@ function renderNav() {
 
   nav.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
+      // Tocar un icono siempre lleva a la pantalla principal de esa pestana,
+      // aunque ya estuvieras en ella dentro de un sub-detalle (una serie, un
+      // dia del historial...) - es una salida rapida ademas del boton atras.
       appState.view = btn.dataset.view;
-      if (appState.view !== "workout") workoutState.activeExerciseId = null;
+      workoutState.activeExerciseId = null;
+      historyState.openDate = null;
       renderNav();
       await renderView();
     });
@@ -56,13 +60,16 @@ async function renderView() {
     await renderSettingsView(container);
     return;
   }
+  if (appState.view === "weight") {
+    await renderWeightView(container);
+    return;
+  }
   container.innerHTML = renderComingSoon(appState.view);
 }
 
 function renderComingSoon(view) {
   const titles = {
     nutrition: "Nutrición",
-    weight: "Peso corporal",
   };
   return `
     <div class="coming-soon">

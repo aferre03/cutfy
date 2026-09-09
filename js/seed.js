@@ -80,8 +80,10 @@ const SEED_SETTINGS = {
   kcalGoal: 2200,
   proteinGoal: 170,
   currentWeightKg: 83,
+  heightCm: null,
   lastDayId: null,
   lastDayDate: null,
+  dayFinished: false,
   routineVersion: ROUTINE_VERSION,
   routineCustomized: false,
 };

@@ -357,15 +357,50 @@ html, body {
 .history-day-date { color: var(--muted); font-size: 0.85rem; margin-top: 0.15rem; }
 .history-done-badge { margin-left: 0.15rem; }
 
-.history-day-percent { font-weight: 800; font-size: 1.3rem; margin-left: 0.75rem; white-space: nowrap; }
-.history-day-percent.pct-up, .exercise-meta .pct-up { color: var(--up); }
-.history-day-percent.pct-equal, .exercise-meta .pct-equal { color: var(--equal); }
-.history-day-percent.pct-down, .exercise-meta .pct-down { color: var(--down); }
+.history-day-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; margin-left: 0.75rem; }
+.history-day-percent { font-weight: 800; font-size: 1.3rem; white-space: nowrap; }
+
+.pct-up { color: var(--up); }
+.pct-equal { color: var(--equal); }
+.pct-down { color: var(--down); }
 
 .history-exercise { padding: 0.5rem 0; border-top: 1px solid var(--border); }
 .history-exercise:first-of-type { border-top: none; padding-top: 0.5rem; }
 .history-exercise-name { font-weight: 600; font-size: 0.9rem; }
 .history-exercise-sets { color: var(--muted); font-size: 0.85rem; margin-top: 0.1rem; }
+
+/* --- Peso corporal --- */
+.weight-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.75rem;
+}
+.weight-current { font-size: 1.6rem; font-weight: 800; }
+.weight-date { color: var(--muted); font-size: 0.8rem; margin-top: 0.15rem; }
+.bmi-box { text-align: right; }
+.bmi-value { font-size: 1.6rem; font-weight: 800; }
+.bmi-label { font-size: 0.8rem; font-weight: 600; margin-top: 0.15rem; }
+
+.weight-log-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.5rem; }
+.weight-log-row .note-input { margin-bottom: 0; }
+
+.weight-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  margin-top: 0.6rem;
+}
+.weight-row-date { font-weight: 600; font-size: 0.9rem; }
+.weight-row-value { color: var(--muted); font-size: 0.85rem; margin-top: 0.1rem; }
 
 /* --- Editor de ejercicios (Ajustes) --- */
 .field-label {
