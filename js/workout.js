@@ -45,17 +45,28 @@ async function renderWorkoutView(container) {
 
   const rows = await Promise.all(
     exercises.map(async (ex) => {
+      const view = effectiveExercise(ex);
       const done = (await getTodaySets(ex.id, today)).length;
-      const complete = done >= ex.plannedSets;
+      const complete = done >= view.plannedSets;
       return `
         <li class="exercise-row ${complete ? "complete" : ""}" data-exercise-id="${ex.id}">
           <div class="exercise-row-main">
-            <div class="exercise-name">${escapeHtml(ex.name)}</div>
-            <div class="exercise-meta">${ex.plannedSets}×${ex.repsLow}-${ex.repsHigh}${
-        ex.note ? " · " + escapeHtml(ex.note) : ""
+            <div class="exercise-name">${escapeHtml(view.name)}${
+        view.isSwapped ? ' <span class="swap-tag">🔁 hoy</span>' : ""
       }</div>
+            <div class="exercise-meta">${view.plannedSets}×${view.repsLow}-${view.repsHigh}${
+        view.note ? " · " + escapeHtml(view.note) : ""
+      }</div>
+            ${
+              view.isSwapped
+                ? `<div class="exercise-meta">en vez de ${escapeHtml(view.originalName)}</div>`
+                : ""
+            }
           </div>
-          <div class="exercise-progress">${done}/${ex.plannedSets}</div>
+          <div class="exercise-row-actions">
+            <button class="row-icon-btn" data-alt-id="${ex.id}" title="Alternativas">🔄</button>
+            <div class="exercise-progress">${done}/${view.plannedSets}</div>
+          </div>
         </li>
       `;
     })
@@ -86,10 +97,19 @@ async function renderWorkoutView(container) {
       renderWorkoutView(container);
     });
   });
+
+  container.querySelectorAll(".row-icon-btn[data-alt-id]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const ex = exercises.find((x) => x.id === Number(btn.dataset.altId));
+      openAlternativesSheet(ex, () => renderWorkoutView(container));
+    });
+  });
 }
 
 async function renderLogSetScreen(container, exerciseId) {
-  const exercise = await DB.get("exercises", exerciseId);
+  const rawExercise = await DB.get("exercises", exerciseId);
+  const exercise = effectiveExercise(rawExercise);
   const today = todayISO();
   const todaySets = await getTodaySets(exerciseId, today);
   const previousSets = await getPreviousSession(exerciseId, today);
@@ -125,12 +145,23 @@ async function renderLogSetScreen(container, exerciseId) {
     `;
   }
 
+  function segmentDeltaLabel(i) {
+    if (i === 0) return "";
+    const diff = segmentsState[i].weight - segmentsState[i - 1].weight;
+    if (diff === 0) return "";
+    return ` · ${diff > 0 ? "+" : ""}${diff}kg`;
+  }
+
   function renderSegments() {
     return segmentsState
       .map(
         (seg, i) => `
         <div class="segment-editor">
-          ${segmentsState.length > 1 ? `<div class="segment-label">Segmento ${i + 1}</div>` : ""}
+          ${
+            segmentsState.length > 1
+              ? `<div class="segment-label">Segmento ${i + 1}${segmentDeltaLabel(i)}</div>`
+              : ""
+          }
           <div class="stepper-row">
             <span class="stepper-title">Reps</span>
             <div class="stepper">
@@ -159,12 +190,23 @@ async function renderLogSetScreen(container, exerciseId) {
     container.innerHTML = `
       <div class="log-set-screen">
         <button class="back-btn" id="back-to-list">← ${DAY_LABELS[exercise.dayId]}</button>
-        <h2 class="exercise-title">${escapeHtml(exercise.name)}</h2>
+        <div class="title-row">
+          <h2 class="exercise-title">${escapeHtml(exercise.name)}</h2>
+          <button class="row-icon-btn" id="machine-gear-btn" title="Ajustes de máquina">⚙️</button>
+        </div>
+        ${
+          exercise.isSwapped
+            ? `<div class="swap-banner">🔁 Hoy en vez de ${escapeHtml(exercise.originalName)}</div>`
+            : ""
+        }
         <div class="exercise-meta">
           Objetivo: ${exercise.plannedSets}×${exercise.repsLow}-${exercise.repsHigh}${
       exercise.note ? " · " + escapeHtml(exercise.note) : ""
     }
         </div>
+        <button class="secondary-btn" id="swap-exercise-btn">🔄 Cambiar ejercicio</button>
+
+        ${renderMachineSettingsBox(rawExercise)}
 
         ${renderPreviousBox()}
 
@@ -174,7 +216,7 @@ async function renderLogSetScreen(container, exerciseId) {
                <button class="secondary-btn" id="extra-set-btn">Añadir serie extra</button>`
             : `<div class="set-counter">Serie ${setNumber} de ${exercise.plannedSets}</div>
                <div id="segments-container">${renderSegments()}</div>
-               <button class="secondary-btn" id="add-segment-btn">+ Añadir segmento (drop-set)</button>
+               <button class="secondary-btn" id="add-segment-btn">+ Nuevo segmento (menos/más peso, sin descanso)</button>
                <input type="text" id="set-note" class="note-input" placeholder="Nota (opcional, ej. 'N' agarre neutro)" maxlength="40" />
                <button class="primary-btn" id="save-set-btn">Guardar serie</button>`
         }
@@ -184,6 +226,15 @@ async function renderLogSetScreen(container, exerciseId) {
     document.getElementById("back-to-list").addEventListener("click", () => {
       workoutState.activeExerciseId = null;
       renderWorkoutView(container);
+    });
+
+    document.getElementById("machine-gear-btn").addEventListener("click", () => {
+      openMachineConfigSheet(rawExercise, () => renderLogSetScreen(container, exerciseId));
+    });
+    bindMachineSettingsBox(container, rawExercise);
+
+    document.getElementById("swap-exercise-btn").addEventListener("click", () => {
+      openAlternativesSheet(rawExercise, () => renderLogSetScreen(container, exerciseId));
     });
 
     if (isComplete) {
@@ -211,7 +262,8 @@ async function renderLogSetScreen(container, exerciseId) {
 
     document.getElementById("add-segment-btn").addEventListener("click", () => {
       const last = segmentsState[segmentsState.length - 1];
-      segmentsState.push({ reps: last.reps, weight: last.weight });
+      const suggestedWeight = Math.max(0, Math.round(last.weight * 0.8));
+      segmentsState.push({ reps: last.reps, weight: suggestedWeight });
       paint();
     });
 

@@ -108,9 +108,48 @@ html, body {
   cursor: pointer;
 }
 .exercise-row.complete { border-color: var(--accent-dark); }
+.exercise-row-main { flex: 1; min-width: 0; }
 .exercise-name { font-weight: 600; }
 .exercise-meta { color: var(--muted); font-size: 0.8rem; margin-top: 0.15rem; }
+.exercise-row-actions { display: flex; align-items: center; flex-shrink: 0; }
 .exercise-progress { font-weight: 700; font-size: 1.05rem; color: var(--accent); white-space: nowrap; margin-left: 0.75rem; }
+
+.swap-tag { font-size: 0.75rem; color: var(--equal); font-weight: 600; }
+
+.row-icon-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 1.05rem;
+  min-width: 2.6rem;
+  min-height: 2.6rem;
+  margin-left: 0.5rem;
+  cursor: pointer;
+}
+
+.title-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.title-row .exercise-title { flex: 1; }
+
+.swap-banner {
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid var(--equal);
+  color: var(--equal);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.machine-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem 0.25rem;
+  margin-bottom: 1rem;
+}
+.machine-box-label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem; }
 
 /* --- Pantalla de registro de serie --- */
 .back-btn {
@@ -242,3 +281,52 @@ html, body {
 .rest-adjust .secondary-btn { width: auto; padding: 0.7rem 1.4rem; margin-bottom: 0; }
 
 .rest-overlay .primary-btn { max-width: 320px; }
+
+/* --- Hojas modales (config. de maquina, alternativas) --- */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  padding: 1.25rem 1.25rem calc(1.25rem + var(--safe-bottom));
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.sheet-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+.sheet-options { margin: 0.75rem 0; }
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--border);
+}
+.check-row:last-child { border-bottom: none; }
+.check-row input { width: 1.2rem; height: 1.2rem; }
+
+.alt-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.alt-option:last-child { border-bottom: none; }
+.alt-name { font-weight: 600; font-size: 0.95rem; }
+.alt-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+.alt-actions .secondary-btn { width: auto; padding: 0.5rem 0.8rem; margin-bottom: 0; font-size: 0.85rem; }
