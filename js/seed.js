@@ -84,6 +84,7 @@ const SEED_SETTINGS = {
   lastDayId: null,
   lastDayDate: null,
   dayFinished: false,
+  suggestedDayOverride: null,
   routineVersion: ROUTINE_VERSION,
   routineCustomized: false,
 };

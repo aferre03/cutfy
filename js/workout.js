@@ -21,10 +21,13 @@ async function getDayExercises(dayId) {
 }
 
 /** Que dia toca segun el ciclo Push > Pull > Leg > (descanso) > repetir.
- * Si ya se ha entrenado hoy y no se ha cerrado con "Hemos terminado", se
- * queda en ese mismo dia en vez de avanzar (para poder seguir metiendo
- * series). En cuanto cambia la fecha, o en cuanto cierras el dia, avanza. */
+ * Si hay un dia forzado a mano (suggestedDayOverride), manda por encima de
+ * todo hasta que se entrene de verdad. Si no, y ya se ha entrenado hoy sin
+ * cerrar con "Hemos terminado", se queda en ese mismo dia en vez de avanzar
+ * (para poder seguir metiendo series). En cuanto cambia la fecha, o en
+ * cuanto cierras el dia, avanza. */
 function suggestedDayId(settings) {
+  if (settings.suggestedDayOverride) return settings.suggestedDayOverride;
   const today = todayISO();
   if (!settings.lastDayId) return "push";
   if (settings.lastDayDate === today && !settings.dayFinished) return settings.lastDayId;
@@ -38,7 +41,41 @@ async function updateDayCycleBookkeeping(dayId, today) {
   settings.lastDayId = dayId;
   settings.lastDayDate = today;
   settings.dayFinished = false;
+  settings.suggestedDayOverride = null;
   await DB.put("settings", settings);
+}
+
+/** Abre una hoja para forzar a mano que dia se sugiere la proxima vez,
+ * con confirmacion antes de aplicarlo. El aviso deja claro que es solo
+ * para "la proxima vez" - en cuanto se registre una serie, el ciclo
+ * normal retoma desde ese dia. */
+function openSuggestedDaySheet(currentSuggestion, onChanged) {
+  const overlay = openSheetOverlay(`
+    <div class="sheet">
+      <div class="sheet-title">¿Qué día quieres que te sugiera?</div>
+      <p class="hint">Ahora mismo te sugiere ${DAY_LABELS[currentSuggestion]}. En cuanto registres una serie, el ciclo sigue normal desde ese día.</p>
+      <div class="sheet-options">
+        ${DAY_CYCLE.map(
+          (id) => `<button class="secondary-btn suggest-day-btn" data-day-id="${id}">${DAY_LABELS[id]}</button>`
+        ).join("")}
+      </div>
+      <button class="secondary-btn" id="suggest-cancel">Cancelar</button>
+    </div>
+  `);
+
+  overlay.querySelector("#suggest-cancel").addEventListener("click", () => overlay.remove());
+
+  overlay.querySelectorAll(".suggest-day-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const dayId = btn.dataset.dayId;
+      if (!confirm(`¿Cambiar el día sugerido a ${DAY_LABELS[dayId]}?`)) return;
+      const settings = await DB.get("settings", "main");
+      settings.suggestedDayOverride = dayId;
+      await DB.put("settings", settings);
+      overlay.remove();
+      onChanged();
+    });
+  });
 }
 
 async function renderWorkoutView(container) {
@@ -87,13 +124,16 @@ async function renderWorkoutView(container) {
   );
 
   container.innerHTML = `
-    <div class="day-tabs">
-      ${DAY_CYCLE.map(
-        (id) => `
-        <button class="day-tab ${id === workoutState.selectedDayId ? "active" : ""}" data-day-id="${id}">
-          ${DAY_LABELS[id]}${id === suggestion ? '<span class="suggested-dot"></span>' : ""}
-        </button>`
-      ).join("")}
+    <div class="day-tabs-row">
+      <div class="day-tabs">
+        ${DAY_CYCLE.map(
+          (id) => `
+          <button class="day-tab ${id === workoutState.selectedDayId ? "active" : ""}" data-day-id="${id}">
+            ${DAY_LABELS[id]}${id === suggestion ? '<span class="suggested-dot"></span>' : ""}
+          </button>`
+        ).join("")}
+      </div>
+      <button class="row-icon-btn" id="change-suggestion-btn" title="Cambiar día sugerido">🔀</button>
     </div>
     <ul class="exercise-list">${rows.join("")}</ul>
     ${
@@ -102,6 +142,10 @@ async function renderWorkoutView(container) {
         : ""
     }
   `;
+
+  document.getElementById("change-suggestion-btn").addEventListener("click", () => {
+    openSuggestedDaySheet(suggestion, () => renderWorkoutView(container));
+  });
 
   container.querySelectorAll(".day-tab").forEach((btn) => {
     btn.addEventListener("click", () => {

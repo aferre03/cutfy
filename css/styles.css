@@ -71,6 +71,8 @@ html, body {
 .nav-btn.active { color: var(--accent); }
 
 /* --- Selector de dia --- */
+.day-tabs-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+.day-tabs-row .day-tabs { flex: 1; margin-bottom: 0; }
 .day-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 
 .day-tab {
