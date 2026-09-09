@@ -21,13 +21,24 @@
 html, body {
   margin: 0;
   height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  overscroll-behavior-y: contain;
+}
+
+/* "App shell" fijo: topbar y bottom-nav no se mueven, solo view-container
+ * hace scroll dentro de su propia caja. Sin esto, en iOS instalado como app
+ * la pagina entera hace scroll con el rebote de Safari y deja huecos vacios
+ * donde el bottom-nav (antes position:fixed) no llega a cubrir. */
+body {
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
+  flex-shrink: 0;
   padding: calc(0.75rem + var(--safe-top)) 1rem 0.75rem;
   font-size: 1.2rem;
   font-weight: 700;
@@ -35,8 +46,14 @@ html, body {
 }
 
 .view-container {
-  padding: 1rem 1rem calc(5.5rem + var(--safe-bottom));
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding: 1rem 1rem 1.5rem;
   max-width: 480px;
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -44,10 +61,7 @@ html, body {
 
 /* --- Navegacion inferior --- */
 .bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex-shrink: 0;
   display: flex;
   background: var(--panel);
   border-top: 1px solid var(--border);
