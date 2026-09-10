@@ -68,7 +68,9 @@ body {
   display: flex;
   background: var(--panel);
   border-top: 1px solid var(--border);
-  padding-bottom: var(--safe-bottom);
+  /* Media area segura en vez de entera: deja los iconos mas cerca del
+   * borde inferior sin que lleguen a chocar con la barra del home. */
+  padding-bottom: calc(var(--safe-bottom) * 0.5);
 }
 
 /* Con el teclado abierto (detectado en app.js), el menu de abajo estorba
@@ -82,7 +84,7 @@ body.keyboard-open .bottom-nav {
   background: none;
   border: none;
   color: var(--muted);
-  padding: 0.45rem 0.2rem 0.4rem;
+  padding: 0.45rem 0.2rem 0.15rem;
   display: flex;
   flex-direction: column;
   align-items: center;
