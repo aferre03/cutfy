@@ -1,18 +1,20 @@
 // Punto de entrada: siembra datos, dibuja la navegacion y registra el
 // service worker. Nutricion sigue como placeholder por ahora.
 
-// Detecta si el teclado esta abierto (el viewport visible se queda bastante
-// mas bajo que la pantalla real) para esconder el menu de abajo mientras
-// tanto - ver body.keyboard-open en styles.css. El alto de la app en reposo
-// lo lleva 100dvh en CSS sin nada de JS, mas fiable que intentar medirlo.
-function updateKeyboardState() {
-  if (!window.visualViewport) return;
-  const gap = window.innerHeight - window.visualViewport.height;
-  document.body.classList.toggle("keyboard-open", gap > 150);
-}
-if (window.visualViewport) {
-  window.visualViewport.addEventListener("resize", updateKeyboardState);
-}
+// Esconde el menu de abajo mientras se escribe (ver body.keyboard-open en
+// styles.css). Detectarlo por geometria del viewport (visualViewport) no es
+// fiable en modo standalone en iOS - con foco/desenfoque de los campos es
+// directo y no depende de como cada iOS mida el teclado.
+document.addEventListener("focusin", (e) => {
+  if (e.target.matches("input, textarea, select")) {
+    document.body.classList.add("keyboard-open");
+  }
+});
+document.addEventListener("focusout", (e) => {
+  if (e.target.matches("input, textarea, select")) {
+    document.body.classList.remove("keyboard-open");
+  }
+});
 
 const TABS = [
   { id: "workout", label: "Entreno", icon: "🏋️" },
