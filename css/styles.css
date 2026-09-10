@@ -72,7 +72,7 @@ body {
    * un hueco por debajo que el area segura sola no cubre del todo - esto
    * hace que el propio menu llegue mas abajo y los iconos queden mas cerca
    * del borde en vez de dejar hueco vacio. */
-  padding-bottom: calc(var(--safe-bottom) + 1.5rem);
+  padding-bottom: calc(var(--safe-bottom) + 2.5rem);
 }
 
 /* Con el teclado abierto (detectado en app.js), el menu de abajo estorba
