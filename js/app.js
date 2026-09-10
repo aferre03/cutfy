@@ -1,18 +1,17 @@
 // Punto de entrada: siembra datos, dibuja la navegacion y registra el
 // service worker. Nutricion sigue como placeholder por ahora.
 
-// iOS (sobre todo en apps instaladas, con formularios) a veces no recalcula
-// bien 100dvh cuando aparece/desaparece el teclado, dejando huecos negros
-// donde estaba el teclado. Medir el viewport real con JS y mantenerlo al
-// dia es el arreglo fiable - ver --app-height en styles.css.
-function updateAppHeight() {
-  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-  document.documentElement.style.setProperty("--app-height", `${h}px`);
+// Detecta si el teclado esta abierto (el viewport visible se queda bastante
+// mas bajo que la pantalla real) para esconder el menu de abajo mientras
+// tanto - ver body.keyboard-open en styles.css. El alto de la app en reposo
+// lo lleva 100dvh en CSS sin nada de JS, mas fiable que intentar medirlo.
+function updateKeyboardState() {
+  if (!window.visualViewport) return;
+  const gap = window.innerHeight - window.visualViewport.height;
+  document.body.classList.toggle("keyboard-open", gap > 150);
 }
-updateAppHeight();
-window.addEventListener("resize", updateAppHeight);
 if (window.visualViewport) {
-  window.visualViewport.addEventListener("resize", updateAppHeight);
+  window.visualViewport.addEventListener("resize", updateKeyboardState);
 }
 
 const TABS = [
