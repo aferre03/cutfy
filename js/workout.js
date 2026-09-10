@@ -310,9 +310,8 @@ async function renderLogSetScreen(container, exerciseId) {
               <button class="stepper-btn" data-action="weight-dec5" data-i="${i}">−5</button>
               <button class="stepper-btn" data-action="weight-dec1" data-i="${i}">−1</button>
               <input
-                type="number"
+                type="text"
                 inputmode="decimal"
-                step="0.5"
                 class="stepper-input"
                 data-field="weight"
                 data-i="${i}"
@@ -429,7 +428,9 @@ async function renderLogSetScreen(container, exerciseId) {
         const i = Number(input.dataset.i);
         const field = input.dataset.field;
         const seg = segmentsState[i];
-        const val = Math.max(0, Number(input.value) || 0);
+        // El teclado decimal en español usa coma; se normaliza antes de
+        // convertir, si no un "82,5" se leería como 0.
+        const val = Math.max(0, Number(input.value.replace(",", ".")) || 0);
         seg[field] = val;
         paint();
       });

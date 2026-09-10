@@ -74,7 +74,7 @@ async function renderWeightView(container) {
 
       ${
         latest && !heightCm
-          ? `<p class="hint">Añade tu altura para ver también tu IMC.</p>`
+          ? `<p class="hint">Añade tu altura en Ajustes para ver también tu IMC.</p>`
           : ""
       }
       ${
@@ -83,15 +83,10 @@ async function renderWeightView(container) {
           : ""
       }
 
-      <label class="field-label" for="height-input">Tu altura (cm)</label>
-      <input type="number" inputmode="numeric" pattern="[0-9]*" id="height-input" class="note-input" min="100" max="250" placeholder="ej. 178" value="${
-        heightCm ?? ""
-      }" />
-
       <label class="field-label" for="weight-date">Registrar peso</label>
       <div class="weight-log-row">
         <input type="date" id="weight-date" class="note-input" max="${today}" value="${today}" />
-        <input type="number" inputmode="decimal" id="weight-input" class="note-input" step="0.1" min="30" max="300" placeholder="kg" value="${
+        <input type="text" inputmode="decimal" id="weight-input" class="note-input" placeholder="kg" value="${
           todayEntry ? todayEntry.weightKg : ""
         }" />
       </div>
@@ -101,16 +96,12 @@ async function renderWeightView(container) {
     </div>
   `;
 
-  document.getElementById("height-input").addEventListener("change", async (e) => {
-    const val = Number(e.target.value);
-    settings.heightCm = val > 0 ? val : null;
-    await DB.put("settings", settings);
-    renderWeightView(container);
-  });
-
   document.getElementById("save-weight-btn").addEventListener("click", async () => {
     const date = document.getElementById("weight-date").value;
-    const weightKg = Number(document.getElementById("weight-input").value);
+    // El teclado decimal en español usa coma ("83,5"); un <input type="number">
+    // solo admite punto y se queda vacio por dentro si escribes una coma, asi
+    // que el campo es type="text" y aqui se normaliza antes de convertir.
+    const weightKg = Number(document.getElementById("weight-input").value.replace(",", "."));
     if (!date || !weightKg || weightKg <= 0) return;
 
     const existing = weights.find((w) => w.date === date);

@@ -1,5 +1,19 @@
 // Punto de entrada: siembra datos, dibuja la navegacion y registra el
-// service worker. Nutricion y Peso siguen como placeholder por ahora.
+// service worker. Nutricion sigue como placeholder por ahora.
+
+// iOS (sobre todo en apps instaladas, con formularios) a veces no recalcula
+// bien 100dvh cuando aparece/desaparece el teclado, dejando huecos negros
+// donde estaba el teclado. Medir el viewport real con JS y mantenerlo al
+// dia es el arreglo fiable - ver --app-height en styles.css.
+function updateAppHeight() {
+  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty("--app-height", `${h}px`);
+}
+updateAppHeight();
+window.addEventListener("resize", updateAppHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", updateAppHeight);
+}
 
 const TABS = [
   { id: "workout", label: "Entreno", icon: "🏋️" },

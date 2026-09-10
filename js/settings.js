@@ -39,6 +39,14 @@ async function renderSettingsView(container) {
 
   container.innerHTML = `
     <div class="theme-section">
+      <h2 class="section-title">👤 Tu perfil</h2>
+      <label class="field-label" for="profile-height-input">Altura (cm)</label>
+      <input type="number" inputmode="numeric" pattern="[0-9]*" id="profile-height-input" class="note-input" min="100" max="250" placeholder="ej. 178" value="${
+        settings.heightCm ?? ""
+      }" />
+    </div>
+
+    <div class="theme-section">
       <h2 class="section-title">🎨 Color de la app</h2>
       <div class="theme-swatches">
         ${ACCENT_PRESETS.map(
@@ -67,6 +75,12 @@ async function renderSettingsView(container) {
     <ul class="exercise-list">${rows || `<p class="hint">Sin ejercicios en ${dayLabel(dayId)} todavía.</p>`}</ul>
     <button class="primary-btn" id="add-exercise-btn">+ Añadir ejercicio a ${dayLabel(dayId)}</button>
   `;
+
+  document.getElementById("profile-height-input").addEventListener("change", async (e) => {
+    const val = Number(e.target.value);
+    settings.heightCm = val > 0 ? val : null;
+    await DB.put("settings", settings);
+  });
 
   async function setAccentColor(color) {
     applyAccentColor(color);
