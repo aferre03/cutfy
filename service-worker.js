@@ -3,7 +3,7 @@
 // Cutfy siga funcionando en el gym sin señal. Los datos reales viven en
 // IndexedDB, no aqui.
 
-const CACHE_NAME = "cutfy-cache-v10";
+const CACHE_NAME = "cutfy-cache-v11";
 const ASSETS = [
   "./",
   "./index.html",
@@ -20,6 +20,7 @@ const ASSETS = [
   "./js/history.js",
   "./js/settings.js",
   "./js/weight.js",
+  "./js/back-nav.js",
   "./js/app.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

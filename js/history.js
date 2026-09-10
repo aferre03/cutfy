@@ -105,6 +105,7 @@ async function renderHistoryView(container) {
   container.querySelectorAll(".history-day[data-date]").forEach((card) => {
     card.addEventListener("click", () => {
       historyState.openDate = card.dataset.date;
+      armBackTrap();
       renderHistoryView(container);
     });
   });

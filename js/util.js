@@ -67,6 +67,7 @@ function openSheetOverlay(innerHtml) {
     if (e.target === overlay) overlay.remove();
   });
   document.body.appendChild(overlay);
+  armBackTrap();
   return overlay;
 }
 

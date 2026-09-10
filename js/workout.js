@@ -158,6 +158,7 @@ async function renderWorkoutView(container) {
   container.querySelectorAll(".exercise-row").forEach((row) => {
     row.addEventListener("click", () => {
       workoutState.activeExerciseId = Number(row.dataset.exerciseId);
+      armBackTrap();
       renderWorkoutView(container);
     });
   });

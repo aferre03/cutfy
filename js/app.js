@@ -15,6 +15,7 @@ async function init() {
   await ensureSeeded();
   await initTheme();
   await loadDays();
+  initBackNavigation();
   renderNav();
   await renderView();
 
