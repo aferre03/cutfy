@@ -72,7 +72,7 @@ body {
    * un hueco por debajo que el area segura sola no cubre del todo - esto
    * hace que el propio menu llegue mas abajo y los iconos queden mas cerca
    * del borde en vez de dejar hueco vacio. */
-  padding-bottom: calc(var(--safe-bottom) + 2.5rem);
+  padding-bottom: calc(var(--safe-bottom) + 3rem);
 }
 
 /* Con el teclado abierto (detectado en app.js), el menu de abajo estorba
@@ -86,7 +86,7 @@ body.keyboard-open .bottom-nav {
   background: none;
   border: none;
   color: var(--muted);
-  padding: 0.6rem 0.2rem 0.5rem;
+  padding: 0.4rem 0.2rem 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -94,7 +94,7 @@ body.keyboard-open .bottom-nav {
   font-size: 0.7rem;
   cursor: pointer;
 }
-.nav-btn .nav-icon { font-size: 1.3rem; }
+.nav-btn .nav-icon { font-size: 1.1rem; }
 .nav-btn.active { color: var(--accent); }
 
 /* --- Selector de dia --- */
