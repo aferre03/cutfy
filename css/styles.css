@@ -84,15 +84,15 @@ body.keyboard-open .bottom-nav {
   background: none;
   border: none;
   color: var(--muted);
-  padding: 0.45rem 0.2rem 0.15rem;
+  padding: 0.5rem 0.2rem 0.2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.12rem;
-  font-size: 0.68rem;
+  gap: 0.2rem;
+  font-size: 0.78rem;
   cursor: pointer;
 }
-.nav-btn .nav-icon { font-size: 1.15rem; }
+.nav-btn .nav-icon { font-size: 1.5rem; }
 .nav-btn.active { color: var(--accent); }
 
 /* --- Selector de dia --- */
