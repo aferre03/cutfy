@@ -24,6 +24,8 @@ html, body {
   height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
+  touch-action: manipulation; /* quita el zoom de doble tap; en una app
+    instalada no pinta nada y descuadra todo el layout al activarse */
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
