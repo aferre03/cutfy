@@ -79,6 +79,13 @@ body.keyboard-open .bottom-nav {
   display: none;
 }
 
+/* Dentro de un sub-detalle (una serie, un dia del historial) se esconde
+ * tambien, para que un toque despistado no tire lo que se estaba
+ * registrando - se sale con los botones de dentro de la pantalla. */
+body.subview-active .bottom-nav {
+  display: none;
+}
+
 .nav-btn {
   flex: 1;
   background: none;

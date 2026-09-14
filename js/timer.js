@@ -1,5 +1,13 @@
 // Temporizador de descanso a pantalla completa. Se abre automaticamente al
 // guardar una serie y llama a `onDone` cuando el usuario decide continuar.
+//
+// La cuenta atras se basa en una hora de fin absoluta (Date.now() + segundos),
+// no en un contador que se va restando - asi, si el navegador pausa el
+// intervalo (movil bloqueado, app en segundo plano), al volver se recalcula
+// el tiempo real que queda en vez de arrastrar el desfase. Ademas pide
+// mantener la pantalla encendida mientras dura el descanso (Wake Lock) y, si
+// hay permiso, lanza una notificacion del sistema al terminar por si el
+// movil se ha bloqueado de todas formas.
 
 const COMPARE_LABEL = {
   up: "⬆️ Subiste",
@@ -35,6 +43,29 @@ function formatSeconds(total) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+async function requestScreenWakeLock() {
+  if (!("wakeLock" in navigator)) return null;
+  try {
+    return await navigator.wakeLock.request("screen");
+  } catch (e) {
+    return null; // p.ej. pestana no visible en ese instante; no es grave
+  }
+}
+
+function notifyRestDone() {
+  if (!window.Notification || Notification.permission !== "granted") return;
+  if (!navigator.serviceWorker) return;
+  navigator.serviceWorker.ready
+    .then((reg) =>
+      reg.showNotification("¡Descanso terminado! 💪", {
+        body: "Toca para volver a Cutfy",
+        icon: "icons/icon-192.png",
+        tag: "cutfy-rest-done",
+      })
+    )
+    .catch(() => {});
+}
+
 function showRestTimer(initialSeconds, comparison, onDone) {
   // Por si un doble tap en "Guardar serie" ya habia disparado un temporizador:
   // sin esto, el overlay viejo se queda apilado encima de todo (y su interval
@@ -45,14 +76,41 @@ function showRestTimer(initialSeconds, comparison, onDone) {
     el.remove();
   });
 
-  let remaining = initialSeconds;
+  // Pide permiso de notificaciones la primera vez que hace falta (si el
+  // navegador lo soporta) para poder avisar aunque el movil se bloquee.
+  if (window.Notification && Notification.permission === "default") {
+    Notification.requestPermission().catch(() => {});
+  }
+
+  let endTime = Date.now() + initialSeconds * 1000;
   let finished = false;
+  let wakeLock = null;
 
   const overlay = document.createElement("div");
   overlay.className = "rest-overlay";
   document.body.appendChild(overlay);
 
+  requestScreenWakeLock().then((lock) => {
+    wakeLock = lock;
+  });
+
+  // El Wake Lock se libera solo si la pestana deja de estar visible; al
+  // volver a estarlo (se desbloquea el movil) se vuelve a pedir.
+  function onVisibilityChange() {
+    if (document.visibilityState === "visible" && !wakeLock && !finished) {
+      requestScreenWakeLock().then((lock) => {
+        wakeLock = lock;
+      });
+    }
+  }
+  document.addEventListener("visibilitychange", onVisibilityChange);
+
+  function remainingSeconds() {
+    return Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+  }
+
   function paint() {
+    const remaining = remainingSeconds();
     overlay.innerHTML = `
       ${
         comparison
@@ -74,11 +132,11 @@ function showRestTimer(initialSeconds, comparison, onDone) {
 
     if (!finished) {
       overlay.querySelector("#rest-minus").addEventListener("click", () => {
-        remaining = Math.max(0, remaining - 15);
+        endTime = Math.max(Date.now(), endTime - 15000);
         paint();
       });
       overlay.querySelector("#rest-plus").addEventListener("click", () => {
-        remaining += 15;
+        endTime += 15000;
         paint();
       });
     }
@@ -88,16 +146,22 @@ function showRestTimer(initialSeconds, comparison, onDone) {
 
   function close() {
     clearInterval(interval);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+    if (wakeLock) wakeLock.release().catch(() => {});
     overlay.remove();
     onDone();
   }
 
   const interval = setInterval(() => {
-    remaining--;
-    if (remaining <= 0 && !finished) {
+    if (remainingSeconds() <= 0 && !finished) {
       finished = true;
       playBeep();
       if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+      notifyRestDone();
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+        wakeLock = null;
+      }
     }
     paint();
   }, 1000);

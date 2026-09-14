@@ -45,6 +45,7 @@ async function deleteDay(date) {
 }
 
 async function renderHistoryView(container) {
+  updateNavVisibility();
   const [sets, exercises, sessions] = await Promise.all([
     DB.getAll("sets"),
     DB.getAll("exercises"),

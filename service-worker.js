@@ -3,7 +3,7 @@
 // Cutfy siga funcionando en el gym sin señal. Los datos reales viven en
 // IndexedDB, no aqui.
 
-const CACHE_NAME = "cutfy-cache-v22";
+const CACHE_NAME = "cutfy-cache-v23";
 const ASSETS = [
   "./",
   "./index.html",
@@ -42,6 +42,20 @@ self.addEventListener("activate", (event) => {
       )
   );
   self.clients.claim();
+});
+
+// Tocar la notificacion de "descanso terminado" vuelve a la app en vez de
+// simplemente cerrarla.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ("focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow("./");
+    })
+  );
 });
 
 self.addEventListener("fetch", (event) => {

@@ -1,13 +1,15 @@
-// Ajustes de maquina (asiento, respaldo, altura de brazos/pin, marco) y
-// alternativas de ejercicio (sustituto solo para hoy o cambio definitivo
+// Ajustes de maquina (asiento, respaldo, altura de brazos/pin, pies, marco)
+// y alternativas de ejercicio (sustituto solo para hoy o cambio definitivo
 // del ejercicio de ese hueco en la rutina).
 
 const MACHINE_FIELDS = [
   { key: "seat", label: "Asiento" },
   { key: "backrest", label: "Respaldo" },
   { key: "armHeight", label: "Altura brazos/pin" },
+  { key: "feet", label: "Pies" },
   { key: "frame", label: "Marco" },
 ];
+const MACHINE_VALUE_MAX = 20;
 
 /** Vista del ejercicio a mostrar hoy: si tiene un sustituto marcado para
  * la fecha de hoy, se fusionan sus campos por encima de los originales. */
@@ -51,7 +53,10 @@ function bindMachineSettingsBox(container, exercise) {
       const field = btn.dataset.field;
       const values = exercise.machineValues || (exercise.machineValues = {});
       let val = values[field] || 5;
-      val = btn.dataset.machineAction === "inc" ? Math.min(9, val + 1) : Math.max(1, val - 1);
+      val =
+        btn.dataset.machineAction === "inc"
+          ? Math.min(MACHINE_VALUE_MAX, val + 1)
+          : Math.max(1, val - 1);
       values[field] = val;
       container.querySelector(`[data-machine-value="${field}"]`).textContent = val;
       await DB.put("exercises", exercise);
@@ -65,7 +70,7 @@ function openMachineConfigSheet(exercise, onSaved) {
   const overlay = openSheetOverlay(`
     <div class="sheet">
       <div class="sheet-title">¿Qué ajustes tiene esta máquina?</div>
-      <p class="hint">Marca los que apliquen. Se recordará el valor (1-9) que pongas cada vez que entrenes este ejercicio.</p>
+      <p class="hint">Marca los que apliquen. Se recordará el valor (1-${MACHINE_VALUE_MAX}) que pongas cada vez que entrenes este ejercicio.</p>
       <div class="sheet-options">
         ${MACHINE_FIELDS.map(
           (f) => `

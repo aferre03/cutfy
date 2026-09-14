@@ -24,6 +24,14 @@ function isInSubView() {
   return Boolean(workoutState.activeExerciseId) || Boolean(historyState.openDate);
 }
 
+/** Esconde el menu inferior mientras se esta dentro de un sub-detalle (una
+ * serie, un dia del historial), para que un toque despistado en el menu no
+ * tire lo que se estaba registrando. Llamar al principio de cada render que
+ * pueda haber entrado o salido de un sub-detalle. */
+function updateNavVisibility() {
+  document.body.classList.toggle("subview-active", isInSubView());
+}
+
 function exitSubView() {
   const container = document.getElementById("view-container");
   if (workoutState.activeExerciseId) {
@@ -49,3 +57,4 @@ function initBackNavigation() {
 
 window.armBackTrap = armBackTrap;
 window.initBackNavigation = initBackNavigation;
+window.updateNavVisibility = updateNavVisibility;

@@ -78,6 +78,7 @@ function openSuggestedDaySheet(currentSuggestion, onChanged) {
 }
 
 async function renderWorkoutView(container) {
+  updateNavVisibility();
   const settings = await DB.get("settings", "main");
   if (!workoutState.selectedDayId || !getDayIds().includes(workoutState.selectedDayId)) {
     workoutState.selectedDayId = suggestedDayId(settings);

@@ -58,6 +58,7 @@ function renderNav() {
       appState.view = btn.dataset.view;
       workoutState.activeExerciseId = null;
       historyState.openDate = null;
+      updateNavVisibility();
       renderNav();
       await renderView();
     });
