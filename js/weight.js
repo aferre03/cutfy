@@ -52,6 +52,29 @@ async function getReactionImages(trend) {
   return reactionImageCache[trend];
 }
 
+// Frase random opcional debajo de la reaccion: icons/reactions/<trend>-
+// phrases.txt, una frase por linea. Si no existe el archivo, no pasa nada.
+const reactionPhraseCache = {};
+
+async function getReactionPhrase(trend) {
+  if (!(trend in reactionPhraseCache)) {
+    try {
+      const res = await fetch(`icons/reactions/${trend}-phrases.txt`);
+      const lines = res.ok
+        ? (await res.text())
+            .split("\n")
+            .map((l) => l.trim())
+            .filter(Boolean)
+        : [];
+      reactionPhraseCache[trend] = lines;
+    } catch (e) {
+      reactionPhraseCache[trend] = [];
+    }
+  }
+  const lines = reactionPhraseCache[trend];
+  return lines.length ? lines[Math.floor(Math.random() * lines.length)] : null;
+}
+
 function weightTrend(latest, prev) {
   if (!latest || !prev) return null;
   const diff = Math.round((latest.weightKg - prev.weightKg) * 10) / 10;
@@ -75,6 +98,7 @@ async function renderWeightView(container) {
   const reactionImg = reactionImages.length
     ? reactionImages[Math.floor(Math.random() * reactionImages.length)]
     : null;
+  const reactionPhrase = trend ? await getReactionPhrase(trend) : null;
 
   const historyRows = weights
     .map((w, i) => {
@@ -126,8 +150,13 @@ async function renderWeightView(container) {
           ? `
         <div class="weight-reaction">
           ${reactionImg ? `<img src="${reactionImg}" alt="" class="weight-reaction-img" />` : ""}
-          <span class="weight-reaction-emoji">${reaction.emoji}</span>
-          <span class="weight-reaction-text">${reaction.text}</span>
+          <div class="weight-reaction-body">
+            <div>
+              <span class="weight-reaction-emoji">${reaction.emoji}</span>
+              <span class="weight-reaction-text">${reaction.text}</span>
+            </div>
+            ${reactionPhrase ? `<div class="weight-reaction-phrase">${escapeHtml(reactionPhrase)}</div>` : ""}
+          </div>
         </div>
       `
           : ""

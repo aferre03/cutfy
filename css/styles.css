@@ -478,8 +478,16 @@ body.subview-active .bottom-nav {
   margin-bottom: 0.75rem;
   font-weight: 600;
 }
-.weight-reaction-img { max-height: 2.6rem; border-radius: 6px; }
+.weight-reaction-img { max-height: 2.6rem; border-radius: 6px; flex-shrink: 0; }
+.weight-reaction-body { min-width: 0; }
 .weight-reaction-emoji { font-size: 1.3rem; }
+.weight-reaction-phrase {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+  font-style: italic;
+  margin-top: 0.2rem;
+}
 
 .weight-log-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.5rem; }
 .weight-log-row .note-input { margin-bottom: 0; }
