@@ -16,6 +16,25 @@ function bmiCategory(bmi) {
   return { label: "Obesidad", cls: "pct-down" };
 }
 
+// Reaccion segun si subiste, bajaste o te quedaste igual respecto al
+// registro anterior. Por defecto es solo emoji + texto (sin depender de
+// ninguna imagen con derechos de autor); si algun dia quieres poner tus
+// propios memes, basta con dejar un archivo en icons/reactions/<up|down|
+// equal>.png o .gif - si existe se muestra encima del emoji, y si no existe
+// (como ahora) el <img> se esconde solo y se queda el emoji de siempre.
+const TREND_REACTIONS = {
+  up: { emoji: "🐯", text: "¡Subiste!", img: "icons/reactions/up.gif" },
+  down: { emoji: "🙀", text: "¡Bajaste!", img: "icons/reactions/down.gif" },
+  equal: { emoji: "😐", text: "Igual que la última vez", img: "icons/reactions/equal.gif" },
+};
+
+function weightTrend(latest, prev) {
+  if (!latest || !prev) return null;
+  const diff = Math.round((latest.weightKg - prev.weightKg) * 10) / 10;
+  if (diff === 0) return "equal";
+  return diff > 0 ? "up" : "down";
+}
+
 async function renderWeightView(container) {
   const [settings, weightsRaw] = await Promise.all([DB.get("settings", "main"), DB.getAll("bodyWeights")]);
   const weights = weightsRaw.slice().sort((a, b) => b.date.localeCompare(a.date));
@@ -26,6 +45,8 @@ async function renderWeightView(container) {
 
   const bmi = latest && heightCm ? computeBmi(latest.weightKg, heightCm) : null;
   const category = bmi ? bmiCategory(bmi) : null;
+  const trend = weightTrend(latest, weights[1]);
+  const reaction = trend ? TREND_REACTIONS[trend] : null;
 
   const historyRows = weights
     .map((w, i) => {
@@ -71,6 +92,18 @@ async function renderWeightView(container) {
             : ""
         }
       </div>
+
+      ${
+        reaction
+          ? `
+        <div class="weight-reaction">
+          <img src="${reaction.img}" alt="" class="weight-reaction-img" onerror="this.remove()" />
+          <span class="weight-reaction-emoji">${reaction.emoji}</span>
+          <span class="weight-reaction-text">${reaction.text}</span>
+        </div>
+      `
+          : ""
+      }
 
       ${
         latest && !heightCm

@@ -126,14 +126,32 @@ function renderHistoryDetail(container, date, summary) {
   const { dayId, session, percent, planExercises, byExercise } = summary;
   const planIds = new Set(planExercises.map((e) => e.id));
 
+  function setRowsHtml(exSets) {
+    return exSets
+      .map(
+        (s) => `
+        <div class="history-set-row">
+          <div class="history-set-text">Serie ${s.setNumber}: ${formatSegments(s.segments)}</div>
+          <div class="history-set-actions">
+            <button class="row-icon-btn" data-edit-set="${s.id}" title="Editar">✏️</button>
+            <button class="row-icon-btn" data-delete-set="${s.id}" title="Borrar">🗑️</button>
+          </div>
+        </div>
+      `
+      )
+      .join("");
+  }
+
   const plannedRows = planExercises
     .map((ex) => {
       const exSets = (byExercise.get(ex.id) || []).slice().sort((a, b) => a.setNumber - b.setNumber);
-      const setsText = exSets.length ? exSets.map((s) => formatSegments(s.segments)).join(" · ") : "No hecho";
       return `
         <div class="history-exercise">
           <div class="history-exercise-name">${escapeHtml(ex.name)}</div>
-          <div class="history-exercise-sets">${setsText}</div>
+          ${exSets.length ? setRowsHtml(exSets) : `<div class="history-exercise-sets">No hecho</div>`}
+          <button class="secondary-btn history-add-set-btn" data-add-set-exercise="${ex.id}" data-add-set-number="${
+        exSets.length + 1
+      }">+ Añadir serie</button>
         </div>
       `;
     })
@@ -143,11 +161,10 @@ function renderHistoryDetail(container, date, summary) {
     .filter(([exId]) => !planIds.has(exId))
     .map(([, exSets]) => {
       exSets.sort((a, b) => a.setNumber - b.setNumber);
-      const setsText = exSets.map((s) => formatSegments(s.segments)).join(" · ");
       return `
         <div class="history-exercise">
           <div class="history-exercise-name">Ejercicio eliminado</div>
-          <div class="history-exercise-sets">${setsText}</div>
+          ${setRowsHtml(exSets)}
         </div>
       `;
     })
@@ -179,6 +196,160 @@ function renderHistoryDetail(container, date, summary) {
     historyState.openDate = null;
     renderHistoryView(container);
   });
+
+  const allSets = [...byExercise.values()].flat();
+
+  container.querySelectorAll("[data-edit-set]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const set = allSets.find((s) => s.id === Number(btn.dataset.editSet));
+      const exercise = planExercises.find((e) => e.id === set.exerciseId) || null;
+      openSetEditorSheet({
+        mode: "edit",
+        set,
+        exercise,
+        setNumber: set.setNumber,
+        onSaved: () => renderHistoryView(container),
+      });
+    });
+  });
+
+  container.querySelectorAll("[data-delete-set]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("¿Borrar esta serie? No se puede deshacer.")) return;
+      await DB.delete("sets", Number(btn.dataset.deleteSet));
+      renderHistoryView(container);
+    });
+  });
+
+  container.querySelectorAll("[data-add-set-exercise]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const exercise = planExercises.find((e) => e.id === Number(btn.dataset.addSetExercise));
+      openSetEditorSheet({
+        mode: "add",
+        exercise,
+        date,
+        setNumber: Number(btn.dataset.addSetNumber),
+        onSaved: () => renderHistoryView(container),
+      });
+    });
+  });
+}
+
+/** Hoja para editar una serie ya registrada (arreglar reps/peso mal
+ * metidos, borrarla) o anadir una que faltaba (un ejercicio que se te
+ * olvido ese dia). Los segmentos se editan igual que al entrenar en
+ * directo, con soporte de drop-sets. */
+function openSetEditorSheet({ mode, set, exercise, date, setNumber, onSaved }) {
+  const segments = set ? set.segments.map((s) => ({ ...s })) : [{ reps: exercise?.repsLow ?? 8, weight: 0 }];
+
+  const overlay = openSheetOverlay(`<div class="sheet" id="set-editor-sheet"></div>`);
+  const sheetEl = overlay.querySelector("#set-editor-sheet");
+
+  function paint() {
+    sheetEl.innerHTML = `
+      <div class="sheet-title">${mode === "edit" ? `Editar serie ${setNumber}` : "Añadir serie"} — ${escapeHtml(
+      exercise?.name || "Ejercicio eliminado"
+    )}</div>
+      ${segments
+        .map(
+          (seg, i) => `
+        <div class="segment-editor">
+          ${segments.length > 1 ? `<div class="segment-label">Segmento ${i + 1}</div>` : ""}
+          <div class="stepper-row">
+            <span class="stepper-title">Reps</span>
+            <div class="stepper">
+              <button class="stepper-btn" data-action="reps-dec" data-i="${i}">−</button>
+              <input type="number" inputmode="numeric" pattern="[0-9]*" class="stepper-input" data-field="reps" data-i="${i}" value="${
+            seg.reps
+          }" />
+              <button class="stepper-btn" data-action="reps-inc" data-i="${i}">+</button>
+            </div>
+          </div>
+          <div class="stepper-row">
+            <span class="stepper-title">Peso (kg)</span>
+            <div class="stepper stepper-wide">
+              <button class="stepper-btn" data-action="weight-dec5" data-i="${i}">−5</button>
+              <button class="stepper-btn" data-action="weight-dec1" data-i="${i}">−1</button>
+              <input type="text" inputmode="decimal" class="stepper-input" data-field="weight" data-i="${i}" value="${
+            seg.weight
+          }" />
+              <button class="stepper-btn" data-action="weight-inc1" data-i="${i}">+1</button>
+              <button class="stepper-btn" data-action="weight-inc5" data-i="${i}">+5</button>
+            </div>
+          </div>
+        </div>
+      `
+        )
+        .join("")}
+      <button class="secondary-btn" id="set-editor-add-segment">+ Añadir segmento (drop-set)</button>
+      <button class="primary-btn" id="set-editor-save">Guardar</button>
+      ${mode === "edit" ? `<button class="secondary-btn" id="set-editor-delete">Borrar serie</button>` : ""}
+      <button class="secondary-btn" id="set-editor-cancel">Cancelar</button>
+    `;
+
+    sheetEl.querySelectorAll(".stepper-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const i = Number(btn.dataset.i);
+        const action = btn.dataset.action;
+        const seg = segments[i];
+        if (action === "reps-inc") seg.reps++;
+        if (action === "reps-dec") seg.reps = Math.max(0, seg.reps - 1);
+        if (action === "weight-inc1") seg.weight += 1;
+        if (action === "weight-dec1") seg.weight = Math.max(0, seg.weight - 1);
+        if (action === "weight-inc5") seg.weight += 5;
+        if (action === "weight-dec5") seg.weight = Math.max(0, seg.weight - 5);
+        paint();
+      });
+    });
+
+    sheetEl.querySelectorAll(".stepper-input").forEach((input) => {
+      input.addEventListener("change", () => {
+        const i = Number(input.dataset.i);
+        const field = input.dataset.field;
+        const seg = segments[i];
+        seg[field] = Math.max(0, Number(input.value.replace(",", ".")) || 0);
+        paint();
+      });
+    });
+
+    sheetEl.querySelector("#set-editor-add-segment").addEventListener("click", () => {
+      const last = segments[segments.length - 1];
+      segments.push({ reps: last.reps, weight: Math.max(0, Math.round(last.weight * 0.8)) });
+      paint();
+    });
+
+    sheetEl.querySelector("#set-editor-cancel").addEventListener("click", () => overlay.remove());
+
+    if (mode === "edit") {
+      sheetEl.querySelector("#set-editor-delete").addEventListener("click", async () => {
+        if (!confirm("¿Borrar esta serie? No se puede deshacer.")) return;
+        await DB.delete("sets", set.id);
+        overlay.remove();
+        onSaved();
+      });
+    }
+
+    sheetEl.querySelector("#set-editor-save").addEventListener("click", async () => {
+      const cleanSegments = segments.map((s) => ({ ...s }));
+      if (mode === "edit") {
+        set.segments = cleanSegments;
+        await DB.put("sets", set);
+      } else {
+        await DB.add("sets", {
+          exerciseId: exercise.id,
+          date,
+          setNumber,
+          segments: cleanSegments,
+          note: "",
+          timestamp: `${date}T12:00:00.000Z`,
+        });
+      }
+      overlay.remove();
+      onSaved();
+    });
+  }
+
+  paint();
 }
 
 /** Hoja para meter un dia retroactivo (p.ej. entrenaste sin el movil a
