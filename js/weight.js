@@ -18,15 +18,39 @@ function bmiCategory(bmi) {
 
 // Reaccion segun si subiste, bajaste o te quedaste igual respecto al
 // registro anterior. Por defecto es solo emoji + texto (sin depender de
-// ninguna imagen con derechos de autor); si algun dia quieres poner tus
-// propios memes, basta con dejar un archivo en icons/reactions/<up|down|
-// equal>.png o .gif - si existe se muestra encima del emoji, y si no existe
-// (como ahora) el <img> se esconde solo y se queda el emoji de siempre.
+// ninguna imagen con derechos de autor de terceros); si quieres poner tus
+// propios memes, deja archivos en icons/reactions/ siguiendo el patron
+// <up|down|equal>-<numero>.<png|gif|jpg>, por ejemplo up-1.gif, up-2.png,
+// down-1.gif... hasta 8 huecos por categoria. Se comprueba una vez que
+// existen (si no hay ninguno, no pasa nada, se queda el emoji) y cada vez
+// que entras se elige uno al azar entre los que SI existen.
 const TREND_REACTIONS = {
-  up: { emoji: "🐯", text: "¡Subiste!", img: "icons/reactions/up.gif" },
-  down: { emoji: "🙀", text: "¡Bajaste!", img: "icons/reactions/down.gif" },
-  equal: { emoji: "😐", text: "Igual que la última vez", img: "icons/reactions/equal.gif" },
+  up: { emoji: "🐯", text: "¡Subiste!" },
+  down: { emoji: "🙀", text: "¡Bajaste!" },
+  equal: { emoji: "😐", text: "Igual que la última vez" },
 };
+const REACTION_SLOTS = 8;
+const REACTION_EXTENSIONS = ["gif", "png", "jpg"];
+const reactionImageCache = {};
+
+async function getReactionImages(trend) {
+  if (reactionImageCache[trend]) return reactionImageCache[trend];
+  const candidates = [];
+  for (let i = 1; i <= REACTION_SLOTS; i++) {
+    for (const ext of REACTION_EXTENSIONS) {
+      candidates.push(`icons/reactions/${trend}-${i}.${ext}`);
+    }
+  }
+  const checks = await Promise.all(
+    candidates.map((path) =>
+      fetch(path, { method: "HEAD" })
+        .then((res) => (res.ok ? path : null))
+        .catch(() => null)
+    )
+  );
+  reactionImageCache[trend] = checks.filter(Boolean);
+  return reactionImageCache[trend];
+}
 
 function weightTrend(latest, prev) {
   if (!latest || !prev) return null;
@@ -47,6 +71,10 @@ async function renderWeightView(container) {
   const category = bmi ? bmiCategory(bmi) : null;
   const trend = weightTrend(latest, weights[1]);
   const reaction = trend ? TREND_REACTIONS[trend] : null;
+  const reactionImages = trend ? await getReactionImages(trend) : [];
+  const reactionImg = reactionImages.length
+    ? reactionImages[Math.floor(Math.random() * reactionImages.length)]
+    : null;
 
   const historyRows = weights
     .map((w, i) => {
@@ -97,7 +125,7 @@ async function renderWeightView(container) {
         reaction
           ? `
         <div class="weight-reaction">
-          <img src="${reaction.img}" alt="" class="weight-reaction-img" onerror="this.remove()" />
+          ${reactionImg ? `<img src="${reactionImg}" alt="" class="weight-reaction-img" />` : ""}
           <span class="weight-reaction-emoji">${reaction.emoji}</span>
           <span class="weight-reaction-text">${reaction.text}</span>
         </div>
